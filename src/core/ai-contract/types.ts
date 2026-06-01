@@ -1,0 +1,25 @@
+/**
+ * AI Function-Calling Contract — the decoupling layer.
+ *
+ * Feature modules implement AIFunctionHandler and register it with the registry.
+ * The AI module dispatches by function name without importing any feature.
+ *
+ * GROUNDING RULE: handlers return only data sourced from JSON. Never fabricate.
+ */
+
+export interface AIFunctionHandler {
+  /** Unique function name, e.g. "query_budget" */
+  readonly name: string;
+
+  /** Human-readable description for Gemini function declarations */
+  readonly description: string;
+
+  /** JSON Schema of the function parameters (for Gemini) */
+  readonly parameters: Record<string, unknown>;
+
+  /**
+   * Execute the function with the given args.
+   * Must return only data sourced from bundled JSON — never invent.
+   */
+  call(args: Record<string, unknown>): Promise<Record<string, unknown>>;
+}
