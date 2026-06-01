@@ -1,0 +1,119 @@
+{
+  "year": 2025,
+  "total": 25000000000,
+  "currency": "PHP",
+  "sectors": [
+    { "id": "infra", "name": "Infrastructure", "amount": 8000000000 },
+    { "id": "health", "name": "Health", "amount": 5500000000 },
+    { "id": "education", "name": "Education", "amount": 4500000000 },
+    { "id": "social", "name": "Social Services", "amount": 3500000000 },
+    { "id": "admin", "name": "General Administration", "amount": 2000000000 },
+    { "id": "safety", "name": "Public Safety", "amount": 1500000000 }
+  ],
+  "projects": [
+    {
+      "id": "p1",
+      "name": "N. Bacalso Ave Rehab",
+      "sectorId": "infra",
+      "allocated": 120000000,
+      "spent": 72000000,
+      "status": "ongoing",
+      "progress": 0.6,
+      "barangay": "Guadalupe",
+      "lat": 10.3,
+      "lng": 123.89,
+      "timeline": "Q1–Q4 2025"
+    },
+    {
+      "id": "p2",
+      "name": "SRP Coastal Road Extension",
+      "sectorId": "infra",
+      "allocated": 250000000,
+      "spent": 50000000,
+      "status": "planned",
+      "progress": 0.15,
+      "barangay": "South Road Properties",
+      "lat": 10.28,
+      "lng": 123.88,
+      "timeline": "Q3 2025–Q2 2026"
+    },
+    {
+      "id": "p3",
+      "name": "Cebu City Medical Center Expansion",
+      "sectorId": "health",
+      "allocated": 180000000,
+      "spent": 180000000,
+      "status": "completed",
+      "progress": 1.0,
+      "barangay": "Kalubihan",
+      "lat": 10.31,
+      "lng": 123.89,
+      "timeline": "Q1–Q3 2025"
+    },
+    {
+      "id": "p4",
+      "name": "Barangay Health Centers Upgrade",
+      "sectorId": "health",
+      "allocated": 95000000,
+      "spent": 47500000,
+      "status": "ongoing",
+      "progress": 0.5,
+      "barangay": "City-wide",
+      "lat": 10.31,
+      "lng": 123.89,
+      "timeline": "Q1–Q4 2025"
+    },
+    {
+      "id": "p5",
+      "name": "Public School Building Program",
+      "sectorId": "education",
+      "allocated": 200000000,
+      "spent": 60000000,
+      "status": "ongoing",
+      "progress": 0.3,
+      "barangay": "Multiple",
+      "lat": 10.32,
+      "lng": 123.9,
+      "timeline": "Q2 2025–Q1 2026"
+    },
+    {
+      "id": "p6",
+      "name": "4Ps Cash Transfer Distribution",
+      "sectorId": "social",
+      "allocated": 150000000,
+      "spent": 112500000,
+      "status": "ongoing",
+      "progress": 0.75,
+      "barangay": "City-wide",
+      "lat": 10.31,
+      "lng": 123.89,
+      "timeline": "Q1–Q4 2025"
+    },
+    {
+      "id": "p7",
+      "name": "Mambaling Drainage System",
+      "sectorId": "infra",
+      "allocated": 85000000,
+      "spent": 85000000,
+      "status": "completed",
+      "progress": 1.0,
+      "barangay": "Mambaling",
+      "lat": 10.29,
+      "lng": 123.88,
+      "timeline": "Q1–Q2 2025"
+    },
+    {
+      "id": "p8",
+      "name": "CCTV Network Expansion",
+      "sectorId": "safety",
+      "allocated": 75000000,
+      "spent": 30000000,
+      "status": "ongoing",
+      "progress": 0.4,
+      "barangay": "City-wide",
+      "lat": 10.31,
+      "lng": 123.89,
+      "timeline": "Q2–Q4 2025"
+    }
+  ]
+}
