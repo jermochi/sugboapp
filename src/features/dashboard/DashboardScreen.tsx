@@ -1,109 +1,292 @@
 /**
- * DashboardScreen — placeholder for the home dashboard.
+ * DashboardScreen — the "Meet Giya" home screen.
+ *
+ * Port of the design handoff's `DashboardV2Alt`: a soft-gold header (warm wash +
+ * Sinulog star texture + zoomed Giya mascot) leading with search and an "Ask
+ * Giya" CTA, over a white content sheet (service quick-link grid, Featured News
+ * carousel, feedback survey), with a fixed bottom tab bar.
+ *
  * Owned by M2 (Dashboard + Onboarding).
  */
 
+import { LinearGradient } from 'expo-linear-gradient';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ThemedText,
-  ThemedView,
-  ServiceTile,
-  SectionHeader,
-} from '@/core/components';
-import { Spacing, AppColors, AI_BAR_HERO } from '@/core/theme';
-import { navigateTo, Routes } from '@/core/routing';
-import type { ServiceTileData } from '@/core/models';
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/** Stub service tiles — M2 will expand these */
-const SERVICE_TILES: ServiceTileData[] = [
-  {
-    id: 'transparency',
-    label: 'Transparency Tracker',
-    icon: '📊',
-    route: Routes.TRANSPARENCY,
-    color: AppColors.sector.infra,
-  },
-  {
-    id: 'permit',
-    label: 'Business Permit',
-    icon: '📋',
-    route: Routes.PERMIT,
-    color: AppColors.accent,
-  },
-  {
-    id: 'emergency',
-    label: 'Emergency Services',
-    icon: '🚨',
-    route: Routes.EMERGENCY,
-    color: AppColors.error,
-  },
-  {
-    id: 'hotlines',
-    label: 'Hotlines',
-    icon: '📞',
-    route: Routes.EMERGENCY,
-    color: AppColors.info,
-  },
-];
+import { navigateTo } from '@/core/routing';
+import { BrandColors, Fonts } from '@/core/theme';
+import { Strings } from '@/l10n/strings';
+
+import { AskGiyaButton } from './components/AskGiyaButton';
+import { BottomNav } from './components/BottomNav';
+import { NewsCarousel } from './components/NewsCarousel';
+import { RadialGlow } from './components/RadialGlow';
+import { SearchBar } from './components/SearchBar';
+import { ServiceGridTile } from './components/ServiceGridTile';
+import { StarMotif } from './components/StarMotif';
+import { SurveyCta } from './components/SurveyCta';
+import { NEWS_V2, SERVICES_V2, type ServiceQuickLink } from './data';
+
+const T = Strings.dashboard;
+
+const MASCOT = require('../../../assets/images/giya-full.png');
+
+/** Section header: a gold bar + title, reused across the sheet. */
+function SectionHeading({
+  title,
+  style,
+}: {
+  title: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  return (
+    <View style={[styles.sectionHeading, style]}>
+      <View style={styles.sectionBar} />
+      <Text style={styles.sectionTitle}>{title}</Text>
+    </View>
+  );
+}
+
+/** Split the quick-links into rows of four for the grid. */
+function chunk(list: ServiceQuickLink[], size: number): ServiceQuickLink[][] {
+  const rows: ServiceQuickLink[][] = [];
+  for (let i = 0; i < list.length; i += size) rows.push(list.slice(i, i + size));
+  return rows;
+}
 
 export default function DashboardScreen() {
-  const handleTilePress = (tile: ServiceTileData) => {
-    navigateTo(tile.route as keyof import('@/core/routing').RouteParams);
+  const insets = useSafeAreaInsets();
+
+  // Opens the Sugbo AI / Giya conversation. AI screen is not built yet (M1).
+  const handleAsk = () => {
+    // TODO(M1): navigate to the Sugbo AI / Giya conversation flow.
   };
 
+  const handleService = (service: ServiceQuickLink) => {
+    if (service.route) navigateTo(service.route);
+    // TODO: deep-link the remaining quick-links once their screens exist.
+  };
+
+  const handleSurvey = () => {
+    // TODO: open the feedback survey.
+  };
+
+  const rows = chunk(SERVICES_V2, 4);
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safe}>
-        {/* AI Bar Stub */}
-        <View style={styles.aiBar}>
-          <ThemedText type="bodySmall" color="#FFFFFF" style={styles.aiBarText}>
-            {AI_BAR_HERO}
-          </ThemedText>
+    <View style={styles.root}>
+      {/* Status bar sits on the warm wash. */}
+      <View style={[styles.statusArea, { height: insets.top }]} />
+
+      <ScrollView
+        style={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Warm header wash + Sinulog star texture (scrolls with content). */}
+        <View style={styles.wash} pointerEvents="none">
+          <LinearGradient
+            colors={['#F6E6C9', '#FBF1DD', '#FBF8F3']}
+            locations={[0, 0.6, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <StarMotif size={150} color="#DAA520" style={{ right: -26, top: -22, opacity: 0.32 }} />
+          <StarMotif size={92} color="#DAA520" style={{ right: 78, top: 96, opacity: 0.16 }} />
+          <StarMotif size={64} color="#C0392B" style={{ left: 150, top: 6, opacity: 0.12 }} />
+          <StarMotif size={110} color="#DAA520" style={{ left: -34, top: 150, opacity: 0.14 }} />
+          <RadialGlow
+            size={184}
+            color="#ffffff"
+            innerOpacity={0.7}
+            edge={0.68}
+            style={{ left: 8, top: 66 }}
+          />
         </View>
 
-        {/* Services Grid */}
-        <SectionHeader title="Services" />
-        <View style={styles.grid}>
-          {SERVICE_TILES.map((tile, index) => (
-            <View key={tile.id} style={styles.tileWrapper}>
-              <ServiceTile tile={tile} onPress={handleTilePress} />
+        {/* Header content */}
+        <View style={styles.header}>
+          <SearchBar placeholder={T.searchPlaceholder} onPress={handleAsk} />
+
+          {/* Meet Giya — mascot floats free at left; sheet below paints over its lower body. */}
+          <View style={styles.giyaRow}>
+            <View style={styles.mascotCol}>
+              <Image source={MASCOT} style={styles.mascot} resizeMode="contain" />
             </View>
-          ))}
+            <View style={styles.giyaText}>
+              <Text style={styles.giyaTitle}>{T.giyaTitle}</Text>
+              <Text style={styles.giyaSubtitle}>{T.giyaSubtitle}</Text>
+              <AskGiyaButton label={T.askGiya} onPress={handleAsk} />
+            </View>
+          </View>
         </View>
-      </SafeAreaView>
-    </ThemedView>
+
+        {/* Content sheet — layered above the mascot. */}
+        <View style={styles.sheet}>
+          <SectionHeading title={T.servicesPrompt} style={styles.servicesHeading} />
+          <View style={styles.grid}>
+            {rows.map((row, r) => (
+              <View key={r} style={styles.gridRow}>
+                {row.map((service) => (
+                  <View key={service.label} style={styles.gridCell}>
+                    <ServiceGridTile
+                      icon={service.icon}
+                      label={service.label}
+                      onPress={() => handleService(service)}
+                    />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+
+          <SectionHeading title={T.featuredNews} style={styles.newsHeading} />
+          <NewsCarousel items={NEWS_V2} />
+
+          <SurveyCta title={T.surveyTitle} subtitle={T.surveySubtitle} onPress={handleSurvey} />
+        </View>
+      </ScrollView>
+
+      <BottomNav active="home" />
+      <StatusBar style="dark" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
+    flex: 1,
+    backgroundColor: BrandColors.paper,
+  },
+  statusArea: {
+    backgroundColor: BrandColors.softGold,
+    zIndex: 2,
+  },
+  scroll: {
     flex: 1,
   },
-  safe: {
+  scrollContent: {
+    position: 'relative',
+  },
+  wash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  header: {
+    paddingTop: 8,
+    paddingHorizontal: 20,
+    zIndex: 3,
+  },
+  giyaRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 10,
+  },
+  mascotCol: {
+    position: 'relative',
+    width: 112,
+    alignSelf: 'stretch',
+  },
+  mascot: {
+    position: 'absolute',
+    width: 212,
+    height: 192,
+    left: -72,
+    top: -6,
+    zIndex: 0,
+    // drop-shadow(0 8px 11px rgba(91,72,46,0.18)) — iOS silhouette shadow.
+    shadowColor: '#5B482E',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 11,
+  },
+  giyaText: {
     flex: 1,
-    paddingHorizontal: Spacing.lg,
+    minWidth: 0,
+    zIndex: 2,
   },
-  aiBar: {
-    backgroundColor: AppColors.primary,
-    borderRadius: 12,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.lg,
+  giyaTitle: {
+    fontFamily: Fonts.headingBlack,
+    fontSize: 27,
+    lineHeight: 28,
+    letterSpacing: -0.5,
+    color: BrandColors.garnet,
+    marginTop: 18,
+    marginLeft: 40,
   },
-  aiBarText: {
-    textAlign: 'center',
-    fontStyle: 'italic',
+  giyaSubtitle: {
+    fontFamily: Fonts.body,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: BrandColors.charcoal,
+    marginBottom: 5,
+    marginLeft: 40,
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 22,
+    paddingHorizontal: 20,
+    paddingBottom: 26,
+    marginTop: 10,
+    minHeight: 360,
+    zIndex: 5,
+    // 0 -6px 24px rgba(91,72,46,0.07)
+    shadowColor: '#5B482E',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  servicesHeading: {
+    marginBottom: 16,
+  },
+  newsHeading: {
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  sectionBar: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: BrandColors.gold,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.heading,
+    fontSize: 17,
+    color: BrandColors.charcoal,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
+    gap: 20,
   },
-  tileWrapper: {
-    width: '48%',
-    flexGrow: 1,
+  gridRow: {
+    flexDirection: 'row',
+    columnGap: 8,
+  },
+  gridCell: {
+    flex: 1,
   },
 });
