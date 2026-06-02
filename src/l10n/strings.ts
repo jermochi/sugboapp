@@ -17,10 +17,26 @@ export const Strings = {
     done: 'Get Started',
   },
 
-  // Dashboard
+  // Dashboard — "Meet Giya" home screen
   dashboard: {
     greeting: 'Maayong adlaw!',
     services: 'Services',
+    searchPlaceholder: 'Pangitag serbisyo o pangutana…',
+    giyaTitle: 'Meet Giya',
+    giyaSubtitle: 'Your Cebu City AI companion.',
+    askGiya: 'Ask Giya',
+    servicesPrompt: 'What would you like to do?',
+    featuredNews: 'Featured News',
+    surveyTitle: 'Do you have a problem or suggestion to our system?',
+    surveySubtitle: 'Answer a quick survey — tabangi mi nga mas mapaayo.',
+  },
+
+  // Bottom navigation tabs
+  nav: {
+    home: 'Home',
+    services: 'Services',
+    news: 'News',
+    account: 'Account',
   },
 
   // Common
