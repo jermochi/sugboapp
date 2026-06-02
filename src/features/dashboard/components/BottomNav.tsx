@@ -37,7 +37,7 @@ interface BottomNavProps {
 export function BottomNav({ active, onChange }: BottomNavProps) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       <View style={styles.row}>
         {ITEMS.map((it) => {
           const on = active === it.id;
@@ -86,12 +86,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingTop: 10,
     paddingHorizontal: 8,
-    paddingBottom: 4,
   },
   tab: {
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 4,
+    paddingTop: 4,
     paddingHorizontal: 6,
     minWidth: 56,
   },
