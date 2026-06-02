@@ -6,11 +6,11 @@
  * top-right. Fixed 200×36 per the spec.
  */
 
-import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Icon } from '@/core/components';
 import { BrandColors, Fonts } from '@/core/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import { RadialGlow } from './RadialGlow';
 
 interface AskGiyaButtonProps {
@@ -49,9 +49,9 @@ export function AskGiyaButton({ label, onPress }: AskGiyaButtonProps) {
 
 const styles = StyleSheet.create({
   shadow: {
-    width: 200,
-    height: 36,
-    marginTop: 13,
+    width: 220,
+    height: 40,
+    marginTop: 7,
     marginLeft: 32,
     borderRadius: 999,
     // warm crimson drop: 0 12px 30px rgba(153,0,0,0.40)

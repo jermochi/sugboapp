@@ -47,8 +47,12 @@ export function NewsCard({ item, onPress }: NewsCardProps) {
           </View>
         </View>
         <View style={styles.caption}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.excerpt}>{item.excerpt}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {item.title}
+          </Text>
+          <Text style={styles.excerpt} numberOfLines={2}>
+            {item.excerpt}
+          </Text>
           <View style={styles.footer}>
             <Icon name="clock" size={12} color={BrandColors.muted} strokeWidth={1.8} />
             <Text style={styles.date}>{item.date}</Text>
@@ -107,6 +111,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 19,
     color: BrandColors.garnet,
+    // Floor a 2-line block so cards stay uniform; minHeight (not height) lets a
+    // full second line render without clipping. numberOfLines={2} caps the top end.
+    minHeight: 38, // 2 × lineHeight
   },
   excerpt: {
     fontFamily: Fonts.body,
@@ -114,6 +121,9 @@ const styles = StyleSheet.create({
     lineHeight: 17.5,
     color: '#6b6358',
     marginTop: 5,
+    // Floor a 2-line block; minHeight (not height) lets both lines show fully,
+    // while numberOfLines={2} truncates longer excerpts with an ellipsis.
+    minHeight: 35, // 2 × lineHeight
   },
   footer: {
     flexDirection: 'row',
