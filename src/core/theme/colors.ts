@@ -5,6 +5,40 @@
  * placeholders that can be refined during polish.
  */
 
+/**
+ * Sugbo brand palette — the warm Cebu/Sinulog design tokens used by the
+ * "Meet Giya" dashboard and other branded surfaces. Mirrors the design
+ * handoff's `T`/`SUG` tokens. Kept separate from {@link AppColors} (which
+ * remains the placeholder set used by the older skeleton screens).
+ */
+export const BrandColors = {
+  /** Primary — Crimson Maroon */
+  crimson: '#990000',
+  /** Ask-button gradient start */
+  crimsonBright: '#b50a0a',
+  /** Ask-button gradient end */
+  crimsonDeep: '#7a1a10',
+  /** Secondary — Harvest Gold (accents, section bars, dots) */
+  gold: '#DAA520',
+  /** Headings — Deep Garnet */
+  garnet: '#6B2E1E',
+  /** Tint — Soft Gold (header ground) */
+  softGold: '#F6E6C9',
+  /** Body text — Charcoal */
+  charcoal: '#2A2A2A',
+  /** Borders — Warm Gray */
+  warmGray: '#E6DFD3',
+  /** App canvas — warm off-white */
+  paper: '#FBF8F3',
+  /** Secondary text on warm bg */
+  muted: '#8B8378',
+  white: '#FFFFFF',
+  success: '#2E7D32',
+  progress: '#1565C0',
+  pending: '#C77800',
+  review: '#6A4FB6',
+} as const;
+
 export const AppColors = {
   /** Core brand */
   primary: '#1A73E8',
