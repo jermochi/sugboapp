@@ -1,0 +1,83 @@
+[
+  {
+    "year": "2026",
+    "title": "Proposed 2026 Budget",
+    "sourceLabel": "SunStar Cebu - Smaller budget proposed",
+    "sourceUrl": "https://www.sunstar.com.ph/cebu/smaller-budget-proposed",
+    "totalAmount": 13470000000,
+    "sectors": [
+      {
+        "id": "mooe",
+        "label": "Maintenance & Operating (MOOE)",
+        "amount": 8530000000,
+        "share": 63.3
+      },
+      {
+        "id": "social-services-total",
+        "label": "Social Services (Total)",
+        "amount": 3960000000,
+        "share": 29.4
+      },
+      {
+        "id": "personal-services",
+        "label": "Personal Services (Salaries)",
+        "amount": 3400000000,
+        "share": 25.2
+      },
+      {
+        "id": "capital-outlay",
+        "label": "Capital Outlay",
+        "amount": 1540000000,
+        "share": 11.4
+      },
+      {
+        "id": "dsws",
+        "label": "Dept. of Social Welfare (DSWS)",
+        "amount": 787860000,
+        "share": 5.8
+      },
+      {
+        "id": "aid-to-hospitals",
+        "label": "Aid to Hospitals",
+        "amount": 767000000,
+        "share": 5.7
+      },
+      {
+        "id": "aid-to-barangays",
+        "label": "Aid to Barangays",
+        "amount": 750880000,
+        "share": 5.6
+      },
+      {
+        "id": "calamity-fund",
+        "label": "Calamity Fund",
+        "amount": 675000000,
+        "share": 5
+      },
+      {
+        "id": "city-health-field-programs",
+        "label": "City Health Field Programs",
+        "amount": 598460000,
+        "share": 4.4
+      },
+      {
+        "id": "peace-order",
+        "label": "Peace & Order Program",
+        "amount": 386870000,
+        "share": 2.9
+      },
+      {
+        "id": "scholarship",
+        "label": "Scholarship Program",
+        "amount": 375000000,
+        "share": 2.8
+      },
+      {
+        "id": "champ",
+        "label": "Hospitalization & Medicines (CHAMP)",
+        "amount": 354500000,
+        "share": 2.6
+      }
+    ]
+  }
+]
