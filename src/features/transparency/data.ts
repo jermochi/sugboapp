@@ -41,15 +41,28 @@ export interface BudgetSector {
   id: string;
   label: string;
   amount: number;
+  share?: number;
   color?: string;
+}
+
+export interface BudgetExpenseCategory {
+  id: string;
+  label: string;
+  shortLabel: string;
+  amount: number;
+  share: number;
+  note?: string;
 }
 
 export interface BudgetOverview {
   year: string;
   title: string;
   sourceUrl: string;
+  sourceLabel?: string;
+  fiscalContext?: string;
   totalAmount: number | null;
   sectors: BudgetSector[];
+  expenseCategories?: BudgetExpenseCategory[];
 }
 
 function normalize(records: TransparencyRecord[]): TransparencyRecord[] {

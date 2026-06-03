@@ -16,11 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
 import { AIHelperButton, ThemedText, ThemedView } from '@/core/components';
+import { goBack as goBackRoute } from '@/core/routing';
 import { BrandColors, BorderRadius, Spacing } from '@/core/theme';
 import {
   budgetOverviews,
   procurementClassifications,
   transparencySections,
+  type BudgetSector,
   type TransparencyAttachment,
   type TransparencyCategory,
   type TransparencyRecord,
@@ -30,6 +32,31 @@ import {
 
 type ViewMode = 'hub' | 'list' | 'detail';
 type DateFilter = 'all' | string;
+type BudgetChartSlice = Pick<BudgetSector, 'id' | 'label' | 'amount' | 'share'>;
+type FilterState = {
+  query: string;
+  dateFilter: DateFilter;
+  procurementFilter: ProcurementClassification | 'all';
+};
+
+const UI_COLORS = {
+  text: BrandColors.charcoal,
+  secondary: BrandColors.muted,
+  tertiary: BrandColors.muted,
+  link: BrandColors.crimson,
+  border: BrandColors.warmGray,
+  surface: BrandColors.white,
+  softSurface: BrandColors.paper,
+  chart: [
+    BrandColors.crimson,
+    BrandColors.gold,
+    BrandColors.progress,
+    BrandColors.garnet,
+    BrandColors.review,
+    BrandColors.pending,
+    BrandColors.success,
+  ],
+} as const;
 
 const SECTION_COLORS: Record<TransparencyCategory, string> = {
   'annual-budget': BrandColors.crimson,
@@ -38,11 +65,7 @@ const SECTION_COLORS: Record<TransparencyCategory, string> = {
 };
 
 const BUDGET_SECTOR_COLORS = [
-  BrandColors.crimson,
-  BrandColors.gold,
-  BrandColors.progress,
-  BrandColors.garnet,
-  BrandColors.muted,
+  ...UI_COLORS.chart,
 ];
 
 export default function TransparencyScreen() {
@@ -52,6 +75,7 @@ export default function TransparencyScreen() {
   const [selectedRecordKey, setSelectedRecordKey] = React.useState('');
   const [query, setQuery] = React.useState('');
   const [dateFilter, setDateFilter] = React.useState<DateFilter>('all');
+  const [budgetYear, setBudgetYear] = React.useState<DateFilter>('all');
   const [procurementFilter, setProcurementFilter] =
     React.useState<ProcurementClassification | 'all'>('all');
 
@@ -73,6 +97,7 @@ export default function TransparencyScreen() {
     setSelectedRecordKey('');
     setQuery('');
     setDateFilter('all');
+    setBudgetYear('all');
     setProcurementFilter('all');
     setMode('list');
   };
@@ -83,6 +108,11 @@ export default function TransparencyScreen() {
   };
 
   const goBack = () => {
+    if (mode === 'hub') {
+      goBackRoute();
+      return;
+    }
+
     if (mode === 'detail') {
       setMode('list');
       return;
@@ -93,6 +123,18 @@ export default function TransparencyScreen() {
     }
   };
 
+  const clearFilters = () => {
+    setQuery('');
+    setDateFilter('all');
+    setProcurementFilter('all');
+  };
+  const pageTitle =
+    mode === 'hub'
+      ? 'Transparency Tracker'
+      : mode === 'list'
+        ? activeSection.title
+        : 'Record Details';
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe}>
@@ -101,12 +143,10 @@ export default function TransparencyScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
-          {mode !== 'hub' ? (
-            <BackButton
-              label={mode === 'detail' ? activeSection.title : 'Transparency Tracker'}
-              onPress={goBack}
-            />
-          ) : null}
+          <PageHeader
+            title={pageTitle}
+            onBackPress={goBack}
+          />
 
           {mode === 'hub' ? (
             <HubView onSectionPress={openSection} />
@@ -116,11 +156,14 @@ export default function TransparencyScreen() {
               records={filteredRecords}
               query={query}
               dateFilter={dateFilter}
+              budgetYear={budgetYear}
               procurementFilter={procurementFilter}
               tone={tone}
               onQueryChange={setQuery}
               onDateFilterChange={setDateFilter}
+              onBudgetYearChange={setBudgetYear}
               onProcurementFilterChange={setProcurementFilter}
+              onClearFilters={clearFilters}
               onRecordPress={openRecord}
             />
           ) : selectedRecord ? (
@@ -138,18 +181,26 @@ function HubView({
 }: {
   onSectionPress: (section: TransparencySection) => void;
 }) {
+  const stats = React.useMemo(() => getTrackerStats(), []);
+
   return (
     <>
-      <View style={styles.header}>
-        <ThemedText type="caption" color={BrandColors.crimson}>
+      <View style={styles.hubHero}>
+        <ThemedText type="caption" color={UI_COLORS.secondary}>
           Transparency Tracker
         </ThemedText>
-        <ThemedText type="hero" color={BrandColors.garnet}>
-          Public records, easier to read.
+        <ThemedText type="title" color={UI_COLORS.text} style={styles.sectionHeading}>
+          Public records
         </ThemedText>
-        <ThemedText type="bodySmall" color={BrandColors.muted}>
-          Browse Cebu City annual budgets, full disclosure reports, and procurement postings.
+        <ThemedText type="bodySmall" color={UI_COLORS.secondary}>
+          Budget files, disclosure reports, and procurement documents in one place.
         </ThemedText>
+      </View>
+
+      <View style={styles.statsStrip}>
+        <MetricPill label="Records" value={String(stats.records)} />
+        <MetricPill label="Files" value={String(stats.attachments)} />
+        <MetricPill label="Sources" value={String(transparencySections.length)} />
       </View>
 
       <View style={styles.hubGrid}>
@@ -170,65 +221,82 @@ function ListView({
   records,
   query,
   dateFilter,
+  budgetYear,
   procurementFilter,
   tone,
   onQueryChange,
   onDateFilterChange,
+  onBudgetYearChange,
   onProcurementFilterChange,
+  onClearFilters,
   onRecordPress,
 }: {
   section: TransparencySection;
   records: TransparencyRecord[];
   query: string;
   dateFilter: DateFilter;
+  budgetYear: DateFilter;
   procurementFilter: ProcurementClassification | 'all';
   tone: string;
   onQueryChange: (query: string) => void;
   onDateFilterChange: (date: DateFilter) => void;
+  onBudgetYearChange: (date: DateFilter) => void;
   onProcurementFilterChange: (classification: ProcurementClassification | 'all') => void;
+  onClearFilters: () => void;
   onRecordPress: (record: TransparencyRecord) => void;
 }) {
   const dateOptions = React.useMemo(() => getDateOptions(section.records), [section.records]);
+  const activeFilterCount = getActiveFilterCount({
+    query,
+    dateFilter,
+    procurementFilter,
+  });
 
   return (
     <>
-      <View style={styles.header}>
-        <ThemedText type="caption" color={tone}>
-          {section.eyebrow}
-        </ThemedText>
-        <ThemedText type="hero" color={BrandColors.garnet}>
-          {section.title}
-        </ThemedText>
-        <ThemedText type="bodySmall" color={BrandColors.muted}>
-          {section.description}
-        </ThemedText>
-      </View>
-
-      {section.id === 'annual-budget' ? (
+{section.id === 'annual-budget' ? (
         <BudgetOverviewPanel
-          selectedYear={dateFilter === 'all' ? undefined : dateFilter}
+          selectedYear={budgetYear === 'all' ? undefined : budgetYear}
           tone={tone}
-          onYearChange={onDateFilterChange}
+          onYearChange={onBudgetYearChange}
         />
       ) : null}
 
-      <View style={styles.toolbar}>
+      <View style={styles.filterPanel}>
+        <View style={styles.filterPanelTop}>
+          <View>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
+              Showing
+            </ThemedText>
+            <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
+              {records.length} of {section.records.length} records
+            </ThemedText>
+          </View>
+          {activeFilterCount > 0 ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear filters"
+              onPress={onClearFilters}
+              style={({ pressed }) => [styles.clearFilterButton, pressed && styles.pressed]}
+            >
+              <ThemedText type="caption" color={tone}>
+                Clear
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+
         <View style={styles.searchBox}>
-          <ThemedText type="caption" color={BrandColors.muted}>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
             Search
           </ThemedText>
           <TextInput
             value={query}
             onChangeText={onQueryChange}
             placeholder={`Search ${section.title.toLowerCase()}...`}
-            placeholderTextColor={BrandColors.muted}
+            placeholderTextColor={UI_COLORS.tertiary}
             style={styles.searchInput}
           />
-        </View>
-        <View style={styles.countBadge}>
-          <ThemedText type="caption" color={tone}>
-            {records.length} items
-          </ThemedText>
         </View>
       </View>
 
@@ -277,15 +345,28 @@ function ListView({
       ) : null}
 
       <View style={styles.recordGrid}>
-        {records.map((record, index) => (
-          <RecordCard
-            key={recordKey(record)}
-            record={record}
+        {records.length > 0 ? (
+          records.map((record) => (
+            <RecordCard
+              key={recordKey(record)}
+              record={record}
+              tone={tone}
+              onPress={() => onRecordPress(record)}
+            />
+          ))
+        ) : (
+          <EmptyState
+            title="No matching records"
+            message="Try another search term, date, or procurement class."
             tone={tone}
-            onPress={() => onRecordPress(record)}
+            onClear={onClearFilters}
           />
-        ))}
+        )}
       </View>
+
+      {section.id === 'annual-budget' ? (
+        <BudgetAllocationOverview selectedYear={budgetYear === 'all' ? undefined : budgetYear} />
+      ) : null}
     </>
   );
 }
@@ -309,86 +390,136 @@ function BudgetOverviewPanel({
   const totalAmount =
     overview.totalAmount ??
     overview.sectors.reduce((sum, sector) => sum + sector.amount, 0);
+  const chartSectors = React.useMemo(
+    () => groupBudgetChartSectors(overview.sectors),
+    [overview.sectors],
+  );
+  const chartTotal = chartSectors.reduce((sum, sector) => sum + sector.amount, 0) || totalAmount;
   const hasBreakdown = totalAmount > 0 && overview.sectors.length > 0;
 
   return (
     <View style={styles.budgetPanel}>
-      <View style={styles.budgetPanelTop}>
+      <View style={styles.budgetHeroTop}>
         <View style={styles.budgetCopy}>
-          <ThemedText type="caption" color={tone}>
-            City budget overview
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
+            Proposed budget
           </ThemedText>
-          <ThemedText type="subtitle" color={BrandColors.charcoal}>
+          <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
             {overview.title}
           </ThemedText>
-          <ThemedText type="bodySmall" color={BrandColors.muted}>
-            {hasBreakdown
-              ? `${overview.sectors.length} sectors in the official breakdown.`
-              : 'Sector totals are not parsed yet. Open the source budget to review the official document.'}
+          <ThemedText type="title" color={UI_COLORS.text} style={styles.budgetTotal}>
+            {hasBreakdown ? formatCompactPeso(totalAmount) : 'Pending'}
           </ThemedText>
         </View>
-        <DonutChart sectors={overview.sectors} totalAmount={totalAmount} tone={tone} />
+        <View style={styles.budgetChartRow}>
+          <View style={styles.budgetDonutCenter}>
+            <DonutChart sectors={chartSectors} totalAmount={chartTotal} tone={tone} size={184} strokeWidth={28} />
+          </View>
+          <BudgetDonutLegend slices={chartSectors} />
+        </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.filterRow}>
-          {overviewYears.map((year) => (
-            <ClassificationChip
-              key={year}
-              title={year}
-              active={activeYear === year}
-              tone={tone}
-              onPress={() => onYearChange(year)}
-            />
-          ))}
-        </View>
-      </ScrollView>
+      {overviewYears.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filterRow}>
+            {overviewYears.map((year) => (
+              <ClassificationChip
+                key={year}
+                title={year}
+                active={activeYear === year}
+                tone={tone}
+                onPress={() => onYearChange(year)}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      ) : null}
 
-      <View style={styles.budgetStatsRow}>
-        <View style={styles.budgetStat}>
-          <ThemedText type="caption" color={BrandColors.muted}>
-            Total
-          </ThemedText>
-          <ThemedText type="subtitle" color={BrandColors.charcoal}>
-            {hasBreakdown ? formatPeso(totalAmount) : 'Pending'}
-          </ThemedText>
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Open source budget for ${overview.title}`}
-          onPress={() => openUrl(overview.sourceUrl)}
-          style={({ pressed }) => [
-            styles.sourcePillButton,
-            { borderColor: tone },
-            pressed && styles.pressed,
-          ]}
-        >
-          <ThemedText type="caption" color={tone}>
-            Open source
-          </ThemedText>
-        </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={'Open source budget for ' + overview.title}
+        onPress={() => openUrl(overview.sourceUrl)}
+        style={({ pressed }) => [
+          styles.sourcePillButton,
+          { borderColor: tone },
+          pressed && styles.pressed,
+        ]}
+      >
+        <ThemedText type="caption" color={tone}>
+          Open source
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
+}
+
+function BudgetAllocationOverview({ selectedYear }: { selectedYear?: string }) {
+  const overviewYears = React.useMemo(
+    () => budgetOverviews.map((overview) => overview.year).sort((a, b) => Number(b) - Number(a)),
+    [],
+  );
+  const activeYear = selectedYear ?? overviewYears[0];
+  const overview =
+    budgetOverviews.find((item) => item.year === activeYear) ?? budgetOverviews[0];
+
+  if (overview.sectors.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.allocationPanel}>
+      <View style={styles.overviewHeader}>
+        <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
+          {overview.year} Allocation Overview
+        </ThemedText>
+        <ThemedText type="caption" color={UI_COLORS.secondary}>
+          {overview.sectors.length} listed items
+        </ThemedText>
       </View>
 
-      {hasBreakdown ? (
-        <View style={styles.sectorList}>
-          {overview.sectors.map((sector, index) => (
-            <View key={sector.id} style={styles.sectorRow}>
+      <View style={styles.sectorList}>
+        {overview.sectors.map((sector, index) => (
+          <View key={sector.id} style={styles.sectorRow}>
+            <View style={styles.sectorLabelRow}>
               <View
                 style={[
                   styles.sectorDot,
-                  { backgroundColor: sector.color ?? BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length] },
+                  { backgroundColor: BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length] },
                 ]}
               />
-              <ThemedText type="bodySmall" color={BrandColors.charcoal}>
+              <ThemedText type="bodySmall" color={UI_COLORS.text} style={styles.sectorLabel}>
                 {sector.label}
               </ThemedText>
-              <ThemedText type="caption" color={BrandColors.muted}>
-                {formatPeso(sector.amount)}
-              </ThemedText>
             </View>
-          ))}
+            <ThemedText type="caption" color={UI_COLORS.secondary} style={styles.sectorAmount}>
+              {formatCompactPeso(sector.amount)} - {formatShare(sector.share)}
+            </ThemedText>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function BudgetDonutLegend({ slices }: { slices: BudgetChartSlice[] }) {
+  return (
+    <View style={styles.budgetLegend}>
+      {slices.map((slice, index) => (
+        <View key={slice.id} style={styles.budgetLegendRow}>
+          <View
+            style={[
+              styles.budgetLegendDot,
+              { backgroundColor: BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length] },
+            ]}
+          />
+          <ThemedText type="caption" color={UI_COLORS.text} numberOfLines={1} style={styles.budgetLegendLabel}>
+            {slice.label}
+          </ThemedText>
+          <ThemedText type="caption" color={UI_COLORS.secondary} style={styles.budgetLegendValue}>
+            {formatShare(slice.share)}
+          </ThemedText>
         </View>
-      ) : null}
+      ))}
     </View>
   );
 }
@@ -397,26 +528,28 @@ function DonutChart({
   sectors,
   totalAmount,
   tone,
+  size = 116,
+  strokeWidth = 16,
 }: {
-  sectors: { amount: number; color?: string }[];
+  sectors: BudgetChartSlice[];
   totalAmount: number;
   tone: string;
+  size?: number;
+  strokeWidth?: number;
 }) {
-  const size = 132;
-  const strokeWidth = 18;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
   const hasBreakdown = totalAmount > 0 && sectors.length > 0;
 
   return (
-    <View style={styles.donutWrap}>
+    <View style={[styles.donutWrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={hasBreakdown ? `${tone}20` : BrandColors.warmGray}
+          stroke={hasBreakdown ? '#E0E0E0' : UI_COLORS.border}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -432,7 +565,7 @@ function DonutChart({
                   cx={size / 2}
                   cy={size / 2}
                   r={radius}
-                  stroke={sector.color ?? BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length]}
+                  stroke={BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length]}
                   strokeWidth={strokeWidth}
                   fill="none"
                   strokeDasharray={`${segment} ${circumference - segment}`}
@@ -447,11 +580,11 @@ function DonutChart({
           : null}
       </Svg>
       <View style={styles.donutCenter}>
-        <ThemedText type="caption" color={hasBreakdown ? tone : BrandColors.muted}>
-          {hasBreakdown ? 'Total' : 'No totals'}
+        <ThemedText type="caption" color={UI_COLORS.secondary}>
+          {hasBreakdown ? 'Listed' : 'No totals'}
         </ThemedText>
-        <ThemedText type="caption" color={BrandColors.charcoal}>
-          {hasBreakdown ? formatCompactPeso(totalAmount) : 'Yet'}
+        <ThemedText type="caption" color={UI_COLORS.text}>
+          {hasBreakdown ? `${sectors.length} items` : 'Yet'}
         </ThemedText>
       </View>
     </View>
@@ -460,42 +593,60 @@ function DonutChart({
 
 function DetailView({ record, tone }: { record: TransparencyRecord; tone: string }) {
   const primaryAttachment = record.attachments[0];
+  const metadata = [
+    record.publishedAt ? { label: 'Published', value: record.publishedAt } : null,
+    record.classification ? { label: 'Class', value: classificationTitle(record.classification) } : null,
+    { label: 'Files', value: String(record.attachments.length) },
+  ].filter((item): item is { label: string; value: string } => Boolean(item));
 
   return (
     <>
       <View style={styles.detailHero}>
         <View style={styles.previewTop}>
-          <View style={[styles.previewBadge, { backgroundColor: `${tone}18` }]}>
-            <ThemedText type="caption" color={tone}>
+          <View style={styles.previewBadge}>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
               {record.attachments.length > 0 ? `${record.attachments.length} files` : 'Source'}
             </ThemedText>
           </View>
           {record.publishedAt ? (
-            <ThemedText type="caption" color={BrandColors.muted}>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
               {record.publishedAt}
             </ThemedText>
           ) : null}
         </View>
 
-        <ThemedText type="hero" color={BrandColors.garnet}>
+        <ThemedText type="title" color={UI_COLORS.text} style={styles.detailTitle}>
           {record.title}
         </ThemedText>
 
-        <ThemedText type="bodySmall" color={BrandColors.muted}>
+        <ThemedText type="bodySmall" color={UI_COLORS.secondary}>
           {record.description ?? 'Open the original Cebu City posting for the full source record.'}
         </ThemedText>
+
+        <View style={styles.metaGrid}>
+          {metadata.map((item) => (
+            <View key={item.label} style={styles.metaTile}>
+              <ThemedText type="caption" color={UI_COLORS.secondary}>
+                {item.label}
+              </ThemedText>
+              <ThemedText type="caption" color={UI_COLORS.text} numberOfLines={1}>
+                {item.value}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
       </View>
 
       {primaryAttachment ? (
         <View style={styles.previewAttachment}>
           <View style={styles.previewAttachmentCopy}>
-            <ThemedText type="caption" color={tone}>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
               Preview
             </ThemedText>
-            <ThemedText type="bodySmall" color={BrandColors.charcoal}>
+            <ThemedText type="bodySmall" color={UI_COLORS.text}>
               {primaryAttachment.label}
             </ThemedText>
-            <ThemedText type="caption" color={BrandColors.muted}>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
               Tap open to view this source file.
             </ThemedText>
           </View>
@@ -503,10 +654,45 @@ function DetailView({ record, tone }: { record: TransparencyRecord; tone: string
         </View>
       ) : null}
 
+      <View style={styles.sourceSummary}>
+        <View style={styles.previewAttachmentCopy}>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
+            Official source
+          </ThemedText>
+          <ThemedText type="bodySmall" color={UI_COLORS.text} numberOfLines={2}>
+            Cebu City Government posting
+          </ThemedText>
+          <ThemedText type="caption" color={UI_COLORS.secondary} numberOfLines={1}>
+            {record.sourceUrl}
+          </ThemedText>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open original source for ${record.title}`}
+          onPress={() => openUrl(record.sourceUrl)}
+          style={({ pressed }) => [
+            styles.openAttachmentButton,
+            { borderColor: tone },
+            pressed && styles.pressed,
+          ]}
+        >
+          <ThemedText type="caption" color={tone}>
+            Open
+          </ThemedText>
+        </Pressable>
+      </View>
+
       <View style={styles.attachmentPanel}>
-        <ThemedText type="subtitle" color={BrandColors.charcoal}>
-          Attachments
-        </ThemedText>
+        <View style={styles.panelTitleRow}>
+          <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
+            Attachments
+          </ThemedText>
+          <View style={styles.previewBadge}>
+            <ThemedText type="caption" color={UI_COLORS.secondary}>
+              {record.attachments.length}
+            </ThemedText>
+          </View>
+        </View>
         {record.attachments.length > 0 ? (
           record.attachments.map((attachment, index) => (
             <AttachmentRow
@@ -517,46 +703,40 @@ function DetailView({ record, tone }: { record: TransparencyRecord; tone: string
           ))
         ) : (
           <View style={styles.emptyAttachments}>
-            <ThemedText type="bodySmall" color={BrandColors.muted}>
+            <ThemedText type="bodySmall" color={UI_COLORS.secondary}>
               No separate files found in the scrape. Use the original posting as the source.
             </ThemedText>
           </View>
         )}
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Open original source for ${record.title}`}
-        onPress={() => openUrl(record.sourceUrl)}
-        style={({ pressed }) => [
-          styles.sourceButton,
-          { backgroundColor: tone },
-          pressed && styles.pressed,
-        ]}
-      >
-        <ThemedText type="button" color={BrandColors.white}>
-          Open Original
-        </ThemedText>
-      </Pressable>
     </>
   );
 }
 
-function BackButton({ label, onPress }: { label: string; onPress: () => void }) {
+function PageHeader({
+  title,
+  onBackPress,
+}: {
+  title: string;
+  onBackPress: () => void;
+}) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Back to ${label}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
-    >
-      <ThemedText type="caption" color={BrandColors.crimson}>
-        Back
+    <View style={styles.pageHeader}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Go back"
+        onPress={onBackPress}
+        style={({ pressed }) => [styles.pageBackButton, pressed && styles.pressed]}
+      >
+          <ThemedText type="title" color={UI_COLORS.text} style={styles.backGlyph}>
+            {'‹'}
+          </ThemedText>
+      </Pressable>
+      <ThemedText type="title" color={UI_COLORS.text} numberOfLines={1} style={styles.pageTitle}>
+        {title}
       </ThemedText>
-      <ThemedText type="caption" color={BrandColors.muted} numberOfLines={1}>
-        {label}
-      </ThemedText>
-    </Pressable>
+    </View>
   );
 }
 
@@ -568,6 +748,7 @@ function SectionCard({
   onPress: () => void;
 }) {
   const tone = SECTION_COLORS[section.id];
+  const sectionStats = sectionSummary(section);
 
   return (
     <Pressable
@@ -576,24 +757,32 @@ function SectionCard({
       onPress={onPress}
       style={({ pressed }) => [styles.sectionCard, pressed && styles.pressed]}
     >
-      <View style={[styles.sectionIcon, { backgroundColor: `${tone}18` }]}>
-        <ThemedText type="button" color={tone}>
-          {section.records.length}
+      <View style={styles.sectionIcon}>
+        <ThemedText type="button" color={UI_COLORS.text}>
+          {sectionStats.records}
         </ThemedText>
       </View>
       <View style={styles.cardCopy}>
-        <ThemedText type="subtitle" color={BrandColors.charcoal}>
+        <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
           {section.title}
         </ThemedText>
-        <ThemedText type="caption" color={tone}>
+        <ThemedText type="caption" color={UI_COLORS.secondary}>
           {section.eyebrow}
         </ThemedText>
-        <ThemedText type="bodySmall" color={BrandColors.muted}>
+        <ThemedText type="bodySmall" color={UI_COLORS.secondary}>
           {section.description}
         </ThemedText>
+        <View style={styles.cardMetaRow}>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
+            {sectionStats.attachments} files
+          </ThemedText>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
+            {sectionStats.years} years
+          </ThemedText>
+        </View>
       </View>
-      <ThemedText type="caption" color={tone}>
-        Open
+        <ThemedText type="caption" color={tone}>
+        Browse
       </ThemedText>
     </Pressable>
   );
@@ -616,8 +805,8 @@ function RecordCard({
       style={({ pressed }) => [styles.recordCard, pressed && styles.pressed]}
     >
       <View style={styles.recordCardTop}>
-        <View style={[styles.previewBadge, { backgroundColor: `${tone}18` }]}>
-          <ThemedText type="caption" color={tone}>
+        <View style={styles.previewBadge}>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
             {record.classification
               ? classificationTitle(record.classification)
               : record.attachments.length > 0
@@ -626,20 +815,25 @@ function RecordCard({
           </ThemedText>
         </View>
         {record.publishedAt ? (
-          <ThemedText type="caption" color={BrandColors.muted}>
+          <ThemedText type="caption" color={UI_COLORS.secondary}>
             {record.publishedAt}
           </ThemedText>
         ) : null}
       </View>
-      <ThemedText type="subtitle" color={BrandColors.charcoal} numberOfLines={3}>
+      <ThemedText type="subtitle" color={UI_COLORS.text} numberOfLines={3} style={styles.subtleHeading}>
         {record.title}
       </ThemedText>
-      <ThemedText type="bodySmall" color={BrandColors.muted} numberOfLines={3}>
+      <ThemedText type="bodySmall" color={UI_COLORS.secondary} numberOfLines={3}>
         {record.description ?? 'Preview attachments and source links for this record.'}
       </ThemedText>
-      <ThemedText type="caption" color={tone}>
-        View details
-      </ThemedText>
+      <View style={styles.recordActionRow}>
+        <ThemedText type="caption" color={UI_COLORS.secondary}>
+          {record.attachments.length > 0 ? `${record.attachments.length} attachments` : 'Source only'}
+        </ThemedText>
+        <ThemedText type="caption" color={tone}>
+          View
+        </ThemedText>
+      </View>
     </Pressable>
   );
 }
@@ -666,7 +860,7 @@ function ClassificationChip({
         pressed && styles.pressed,
       ]}
     >
-      <ThemedText type="caption" color={active ? BrandColors.white : BrandColors.charcoal}>
+      <ThemedText type="caption" color={active ? UI_COLORS.surface : UI_COLORS.text}>
         {title}
       </ThemedText>
     </Pressable>
@@ -688,10 +882,10 @@ function AttachmentRow({
         </ThemedText>
       </View>
       <View style={styles.attachmentCopy}>
-        <ThemedText type="bodySmall" color={BrandColors.charcoal} numberOfLines={2}>
+        <ThemedText type="bodySmall" color={UI_COLORS.text} numberOfLines={2}>
           {attachment.label}
         </ThemedText>
-        <ThemedText type="caption" color={BrandColors.muted} numberOfLines={1}>
+        <ThemedText type="caption" color={UI_COLORS.secondary} numberOfLines={1}>
           {attachment.url}
         </ThemedText>
       </View>
@@ -725,6 +919,61 @@ function AttachmentButton({
   );
 }
 
+function MetricPill({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.metricPill}>
+      <ThemedText type="title" color={UI_COLORS.text} style={styles.metricValue}>
+        {value}
+      </ThemedText>
+      <ThemedText type="caption" color={UI_COLORS.secondary}>
+        {label}
+      </ThemedText>
+    </View>
+  );
+}
+
+function EmptyState({
+  title,
+  message,
+  tone,
+  onClear,
+}: {
+  title: string;
+  message: string;
+  tone: string;
+  onClear: () => void;
+}) {
+  return (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIcon}>
+        <ThemedText type="button" color={UI_COLORS.secondary}>
+          0
+        </ThemedText>
+      </View>
+      <ThemedText type="subtitle" color={UI_COLORS.text} style={styles.subtleHeading}>
+        {title}
+      </ThemedText>
+      <ThemedText type="bodySmall" color={UI_COLORS.secondary}>
+        {message}
+      </ThemedText>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Clear all filters"
+        onPress={onClear}
+        style={({ pressed }) => [
+          styles.emptyAction,
+          { borderColor: tone },
+          pressed && styles.pressed,
+        ]}
+      >
+        <ThemedText type="caption" color={tone}>
+          Clear filters
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
+}
+
 function filterRecords(
   records: TransparencyRecord[],
   query: string,
@@ -750,6 +999,35 @@ function filterRecords(
       .filter(Boolean)
       .some((value) => value?.toLowerCase().includes(normalizedQuery)),
   );
+}
+
+function getActiveFilterCount(filters: FilterState) {
+  return [
+    filters.query.trim() ? 'query' : null,
+    filters.dateFilter !== 'all' ? 'date' : null,
+    filters.procurementFilter !== 'all' ? 'procurement' : null,
+  ].filter(Boolean).length;
+}
+
+function getTrackerStats() {
+  return transparencySections.reduce(
+    (stats, section) => ({
+      records: stats.records + section.records.length,
+      attachments:
+        stats.attachments +
+        section.records.reduce((total, record) => total + record.attachments.length, 0),
+    }),
+    { records: 0, attachments: 0 },
+  );
+}
+
+function sectionSummary(section: TransparencySection) {
+  const years = new Set(section.records.map(recordYear).filter(Boolean));
+  return {
+    records: section.records.length,
+    attachments: section.records.reduce((total, record) => total + record.attachments.length, 0),
+    years: years.size,
+  };
 }
 
 function getDateOptions(records: TransparencyRecord[]) {
@@ -790,6 +1068,40 @@ function formatCompactPeso(value: number) {
   }).format(value)}`;
 }
 
+function groupBudgetChartSectors(sectors: BudgetSector[]): BudgetChartSlice[] {
+  const maxVisibleSlices = 5;
+
+  if (sectors.length <= maxVisibleSlices) {
+    return sectors;
+  }
+
+  const sorted = [...sectors].sort((a, b) => b.amount - a.amount);
+  const visible = sorted.slice(0, maxVisibleSlices - 1);
+  const hidden = sorted.slice(maxVisibleSlices - 1);
+  const othersAmount = hidden.reduce((sum, sector) => sum + sector.amount, 0);
+  const othersShare = hidden.reduce((sum, sector) => sum + (sector.share ?? 0), 0);
+
+  return [
+    ...visible,
+    {
+      id: 'others',
+      label: 'Others',
+      amount: othersAmount,
+      share: othersShare,
+    },
+  ];
+}
+
+function formatShare(value?: number) {
+  if (value === undefined) {
+    return '0%';
+  }
+
+  return `${new Intl.NumberFormat('en-PH', {
+    maximumFractionDigits: value < 1 ? 2 : 0,
+  }).format(value)}%`;
+}
+
 function recordKey(record: TransparencyRecord) {
   return `${record.id}-${record.sourceUrl}`;
 }
@@ -801,50 +1113,96 @@ async function openUrl(url: string) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BrandColors.paper,
+    backgroundColor: UI_COLORS.surface,
   },
   safe: {
     flex: 1,
+    backgroundColor: UI_COLORS.surface,
   },
   content: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.huge,
-    gap: Spacing.lg,
+    gap: Spacing.md,
+    backgroundColor: UI_COLORS.surface,
   },
   header: {
     gap: Spacing.sm,
   },
-  backButton: {
-    minHeight: 44,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    alignSelf: 'flex-start',
+  sectionHeading: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
+  },
+  subtleHeading: {
+    fontWeight: '700',
+  },
+  hubHero: {
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  pageHeader: {
+    minHeight: 54,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: BrandColors.white,
-    borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+  },
+  pageBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backGlyph: {
+    fontSize: 34,
+    lineHeight: 38,
+  },
+  pageTitle: {
+    flex: 1,
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '700',
   },
   hubGrid: {
     gap: Spacing.md,
   },
+  statsStrip: {
+    minHeight: 64,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: UI_COLORS.softSurface,
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  metricPill: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    backgroundColor: UI_COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  metricValue: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
   sectionCard: {
-    minHeight: 146,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    backgroundColor: BrandColors.white,
+    minHeight: 116,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+    borderColor: UI_COLORS.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    boxShadow: '0 8px 24px rgba(42, 42, 42, 0.08)',
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
   },
   sectionIcon: {
-    width: 56,
-    height: 56,
+    width: 50,
+    height: 50,
     borderRadius: BorderRadius.lg,
+    backgroundColor: UI_COLORS.softSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -852,17 +1210,39 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: Spacing.xs,
   },
-  toolbar: {
+  cardMetaRow: {
+    flexDirection: 'row',
     gap: Spacing.md,
   },
-  budgetPanel: {
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+  filterPanel: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    backgroundColor: UI_COLORS.softSurface,
+  },
+  filterPanelTop: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.md,
-    backgroundColor: BrandColors.white,
+  },
+  clearFilterButton: {
+    minHeight: 38,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: UI_COLORS.surface,
+  },
+  budgetPanel: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
-    boxShadow: '0 8px 24px rgba(42, 42, 42, 0.08)',
+    borderColor: UI_COLORS.border,
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
   },
   budgetPanelTop: {
     flexDirection: 'row',
@@ -870,13 +1250,56 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.md,
   },
+  budgetHeroTop: {
+    minHeight: 278,
+    alignItems: 'stretch',
+    gap: Spacing.md,
+  },
+  budgetChartRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  budgetDonutCenter: {
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   budgetCopy: {
     flex: 1,
     gap: Spacing.xs,
   },
-  donutWrap: {
+  budgetTotal: {
+    fontSize: 34,
+    lineHeight: 40,
+  },
+  budgetLegend: {
     width: 132,
-    height: 132,
+    flexShrink: 1,
+    gap: 3,
+  },
+  budgetLegendRow: {
+    minHeight: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  budgetLegendDot: {
+    width: 7,
+    height: 7,
+    borderRadius: BorderRadius.full,
+  },
+  budgetLegendLabel: {
+    flex: 1,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  budgetLegendValue: {
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  donutWrap: {
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -904,45 +1327,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sectorList: {
-    gap: Spacing.sm,
+  allocationPanel: {
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    backgroundColor: UI_COLORS.surface,
+    borderWidth: 1,
+    borderColor: UI_COLORS.border,
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
   },
-  sectorRow: {
-    minHeight: 36,
+  overviewHeader: {
+    minHeight: 38,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  sectorList: {
+    gap: Spacing.md,
+  },
+  sectorRow: {
+    minHeight: 48,
+    alignItems: 'stretch',
+    gap: Spacing.xs,
+  },
+  sectorLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: Spacing.sm,
+  },
+  sectorLabel: {
+    flex: 1,
+    fontWeight: '600',
+  },
+  sectorAmount: {
+    paddingLeft: 22,
   },
   sectorDot: {
     width: 10,
     height: 10,
     borderRadius: BorderRadius.full,
+    marginTop: 5,
+  },
+  expensePanel: {
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: UI_COLORS.border,
+    paddingTop: Spacing.md,
+  },
+  expenseRow: {
+    minHeight: 72,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    backgroundColor: UI_COLORS.softSurface,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  expenseCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  expenseAmount: {
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
   },
   searchBox: {
     minHeight: 54,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
-    backgroundColor: BrandColors.white,
+    borderColor: UI_COLORS.border,
+    backgroundColor: UI_COLORS.surface,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     gap: Spacing.xs,
   },
   searchInput: {
     minHeight: 30,
-    color: BrandColors.charcoal,
+    color: UI_COLORS.text,
     padding: 0,
     fontSize: 15,
-  },
-  countBadge: {
-    alignSelf: 'flex-start',
-    minHeight: 32,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    justifyContent: 'center',
-    backgroundColor: BrandColors.white,
-    borderWidth: 1,
-    borderColor: BrandColors.warmGray,
   },
   recordGrid: {
     gap: Spacing.md,
@@ -957,19 +1421,19 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.lg,
     justifyContent: 'center',
-    backgroundColor: BrandColors.white,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+    borderColor: UI_COLORS.border,
   },
   recordCard: {
-    minHeight: 160,
-    borderRadius: BorderRadius.xl,
+    minHeight: 148,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    backgroundColor: BrandColors.white,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+    borderColor: UI_COLORS.border,
     gap: Spacing.md,
-    boxShadow: '0 8px 24px rgba(42, 42, 42, 0.08)',
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
   },
   recordCardTop: {
     minHeight: 32,
@@ -978,14 +1442,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
+  recordActionRow: {
+    minHeight: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
   detailHero: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     gap: Spacing.md,
-    backgroundColor: BrandColors.white,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
-    boxShadow: '0 8px 24px rgba(42, 42, 42, 0.08)',
+    borderColor: UI_COLORS.border,
+    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)',
+  },
+  detailTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
   },
   previewTop: {
     minHeight: 32,
@@ -1004,12 +1480,23 @@ const styles = StyleSheet.create({
     minHeight: 88,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
-    backgroundColor: BrandColors.white,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+    borderColor: UI_COLORS.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  sourceSummary: {
+    minHeight: 88,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    backgroundColor: UI_COLORS.softSurface,
+    borderWidth: 1,
+    borderColor: UI_COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.md,
   },
   previewAttachmentCopy: {
@@ -1017,23 +1504,69 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   attachmentPanel: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     gap: Spacing.md,
-    backgroundColor: BrandColors.white,
+    backgroundColor: UI_COLORS.surface,
     borderWidth: 1,
-    borderColor: BrandColors.warmGray,
+    borderColor: UI_COLORS.border,
+  },
+  panelTitleRow: {
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
   },
   emptyAttachments: {
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    backgroundColor: BrandColors.paper,
+    backgroundColor: UI_COLORS.softSurface,
+  },
+  emptyState: {
+    minHeight: 220,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    backgroundColor: UI_COLORS.softSurface,
+    borderWidth: 1,
+    borderColor: UI_COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  emptyIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyAction: {
+    minHeight: 42,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: UI_COLORS.surface,
+  },
+  metaGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  metaTile: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    backgroundColor: UI_COLORS.softSurface,
+    gap: 2,
   },
   attachmentRow: {
     minHeight: 72,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
-    backgroundColor: BrandColors.paper,
+    backgroundColor: UI_COLORS.softSurface,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
@@ -1057,13 +1590,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sourceButton: {
-    minHeight: 50,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   pressed: {
     opacity: 0.72,
   },
 });
+
+
