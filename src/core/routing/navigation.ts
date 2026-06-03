@@ -13,9 +13,12 @@ export function navigateTo<T extends keyof RouteParams>(
   params?: RouteParams[T],
 ): void {
   if (params) {
-    router.push({ pathname: route, params: params as Record<string, string> });
+    router.push({
+      pathname: route as `/${string}`,
+      params: params as Record<string, string>,
+    } as never);
   } else {
-    router.push(route as `/${string}`);
+    router.push(route as never);
   }
 }
 
@@ -27,9 +30,12 @@ export function replaceTo<T extends keyof RouteParams>(
   params?: RouteParams[T],
 ): void {
   if (params) {
-    router.replace({ pathname: route, params: params as Record<string, string> });
+    router.replace({
+      pathname: route as `/${string}`,
+      params: params as Record<string, string>,
+    } as never);
   } else {
-    router.replace(route as `/${string}`);
+    router.replace(route as never);
   }
 }
 
