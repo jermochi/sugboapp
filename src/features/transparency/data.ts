@@ -13,7 +13,7 @@ export type ProcurementClassification =
 export interface TransparencyAttachment {
   label: string;
   url: string;
-  fileType: 'pdf' | 'doc' | 'image' | 'page';
+  fileType: 'pdf' | 'doc' | 'xls' | 'image' | 'page';
 }
 
 export interface TransparencyRecord {
@@ -43,7 +43,7 @@ function normalize(records: TransparencyRecord[]): TransparencyRecord[] {
     description: cleanDescription(record.description),
     classification:
       record.category === 'procurement'
-        ? classifyProcurement(record)
+        ? record.classification ?? classifyProcurement(record)
         : record.classification,
   }));
 }

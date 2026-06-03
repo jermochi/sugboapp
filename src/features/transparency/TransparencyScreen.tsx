@@ -27,6 +27,7 @@ import {
 } from './data';
 
 type ViewMode = 'hub' | 'list' | 'detail';
+type DateFilter = 'all' | string;
 
 const SECTION_COLORS: Record<TransparencyCategory, string> = {
   'annual-budget': BrandColors.crimson,
@@ -40,6 +41,7 @@ export default function TransparencyScreen() {
     React.useState<TransparencyCategory>('annual-budget');
   const [selectedRecordKey, setSelectedRecordKey] = React.useState('');
   const [query, setQuery] = React.useState('');
+  const [dateFilter, setDateFilter] = React.useState<DateFilter>('all');
   const [procurementFilter, setProcurementFilter] =
     React.useState<ProcurementClassification | 'all'>('all');
 
@@ -48,11 +50,11 @@ export default function TransparencyScreen() {
     transparencySections[0];
   const tone = SECTION_COLORS[activeSection.id];
   const filteredRecords = React.useMemo(
-    () => filterRecords(activeSection.records, query, procurementFilter),
-    [activeSection.records, procurementFilter, query],
+    () => filterRecords(activeSection.records, query, procurementFilter, dateFilter),
+    [activeSection.records, dateFilter, procurementFilter, query],
   );
   const selectedRecord =
-    activeSection.records.find((record, index) => recordKey(record, index) === selectedRecordKey) ??
+    activeSection.records.find((record) => recordKey(record) === selectedRecordKey) ??
     filteredRecords[0] ??
     activeSection.records[0];
 
@@ -60,12 +62,13 @@ export default function TransparencyScreen() {
     setActiveSectionId(section.id);
     setSelectedRecordKey('');
     setQuery('');
+    setDateFilter('all');
     setProcurementFilter('all');
     setMode('list');
   };
 
-  const openRecord = (record: TransparencyRecord, index: number) => {
-    setSelectedRecordKey(recordKey(record, index));
+  const openRecord = (record: TransparencyRecord) => {
+    setSelectedRecordKey(recordKey(record));
     setMode('detail');
   };
 
@@ -102,9 +105,11 @@ export default function TransparencyScreen() {
               section={activeSection}
               records={filteredRecords}
               query={query}
+              dateFilter={dateFilter}
               procurementFilter={procurementFilter}
               tone={tone}
               onQueryChange={setQuery}
+              onDateFilterChange={setDateFilter}
               onProcurementFilterChange={setProcurementFilter}
               onRecordPress={openRecord}
             />
@@ -154,21 +159,27 @@ function ListView({
   section,
   records,
   query,
+  dateFilter,
   procurementFilter,
   tone,
   onQueryChange,
+  onDateFilterChange,
   onProcurementFilterChange,
   onRecordPress,
 }: {
   section: TransparencySection;
   records: TransparencyRecord[];
   query: string;
+  dateFilter: DateFilter;
   procurementFilter: ProcurementClassification | 'all';
   tone: string;
   onQueryChange: (query: string) => void;
+  onDateFilterChange: (date: DateFilter) => void;
   onProcurementFilterChange: (classification: ProcurementClassification | 'all') => void;
-  onRecordPress: (record: TransparencyRecord, index: number) => void;
+  onRecordPress: (record: TransparencyRecord) => void;
 }) {
+  const dateOptions = React.useMemo(() => getDateOptions(section.records), [section.records]);
+
   return (
     <>
       <View style={styles.header}>
@@ -203,9 +214,31 @@ function ListView({
         </View>
       </View>
 
+      {dateOptions.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.filterRow}>
+            <ClassificationChip
+              title="All dates"
+              active={dateFilter === 'all'}
+              tone={tone}
+              onPress={() => onDateFilterChange('all')}
+            />
+            {dateOptions.map((date) => (
+              <ClassificationChip
+                key={date}
+                title={date}
+                active={dateFilter === date}
+                tone={tone}
+                onPress={() => onDateFilterChange(date)}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      ) : null}
+
       {section.id === 'procurement' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.classificationRow}>
+          <View style={styles.filterRow}>
             <ClassificationChip
               title="All"
               active={procurementFilter === 'all'}
@@ -228,10 +261,10 @@ function ListView({
       <View style={styles.recordGrid}>
         {records.map((record, index) => (
           <RecordCard
-            key={recordKey(record, index)}
+            key={recordKey(record)}
             record={record}
             tone={tone}
-            onPress={() => onRecordPress(record, index)}
+            onPress={() => onRecordPress(record)}
           />
         ))}
       </View>
@@ -510,22 +543,45 @@ function filterRecords(
   records: TransparencyRecord[],
   query: string,
   procurementFilter: ProcurementClassification | 'all',
+  dateFilter: DateFilter,
 ) {
   const normalizedQuery = query.trim().toLowerCase();
   const classificationFiltered =
     procurementFilter === 'all'
       ? records
       : records.filter((record) => record.classification === procurementFilter);
+  const dateFiltered =
+    dateFilter === 'all'
+      ? classificationFiltered
+      : classificationFiltered.filter((record) => recordYear(record) === dateFilter);
 
   if (!normalizedQuery) {
-    return classificationFiltered;
+    return dateFiltered;
   }
 
-  return classificationFiltered.filter((record) =>
+  return dateFiltered.filter((record) =>
     [record.title, record.description, record.publishedAt]
       .filter(Boolean)
       .some((value) => value?.toLowerCase().includes(normalizedQuery)),
   );
+}
+
+function getDateOptions(records: TransparencyRecord[]) {
+  return [...new Set(records.map(recordYear).filter((year): year is string => Boolean(year)))]
+    .sort((a, b) => Number(b) - Number(a));
+}
+
+function recordYear(record: TransparencyRecord) {
+  if (record.year) {
+    return String(record.year);
+  }
+
+  const publishedYear = record.publishedAt?.match(/\b(20\d{2})\b/)?.[1];
+  if (publishedYear) {
+    return publishedYear;
+  }
+
+  return record.title.match(/\b(20\d{2})\b/)?.[1];
 }
 
 function classificationTitle(classification: ProcurementClassification) {
@@ -535,8 +591,8 @@ function classificationTitle(classification: ProcurementClassification) {
   );
 }
 
-function recordKey(record: TransparencyRecord, index: number) {
-  return `${record.id}-${record.sourceUrl}-${index}`;
+function recordKey(record: TransparencyRecord) {
+  return `${record.id}-${record.sourceUrl}`;
 }
 
 async function openUrl(url: string) {
@@ -629,7 +685,7 @@ const styles = StyleSheet.create({
   recordGrid: {
     gap: Spacing.md,
   },
-  classificationRow: {
+  filterRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingRight: Spacing.lg,
