@@ -36,6 +36,12 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow Giya to use your microphone so you can ask by voice."
+        }
       ]
     ],
     "experiments": {

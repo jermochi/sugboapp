@@ -5,6 +5,7 @@
  * All screen logic lives in src/features/.
  */
 
+import { registerCoreHandlers } from '@/core/ai-contract';
 import { useConnectivityStore } from '@/core/services/connectivityService';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -22,6 +23,9 @@ import { useColorScheme } from 'react-native';
 
 // Keep the splash screen up until the brand fonts are ready.
 SplashScreen.preventAutoHideAsync();
+
+// Wire core AI function handlers (route_to_service) into the registry once.
+registerCoreHandlers();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -57,6 +61,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="giya-chat" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen
           name="transparency"
