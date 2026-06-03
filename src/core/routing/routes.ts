@@ -6,6 +6,7 @@
 
 export const Routes = {
   DASHBOARD: '/' as const,
+  GIYA_CHAT: '/giya-chat' as const,
   ONBOARDING: '/onboarding' as const,
   TRANSPARENCY: '/transparency' as const,
   PERMIT: '/permit' as const,
@@ -19,6 +20,7 @@ export type RouteName = (typeof Routes)[keyof typeof Routes];
  */
 export interface RouteParams {
   '/': undefined;
+  '/giya-chat': undefined;
   '/onboarding': undefined;
   '/transparency': {
     sectorId?: string;
