@@ -13,10 +13,12 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
 import { AIHelperButton, ThemedText, ThemedView } from '@/core/components';
 import { BrandColors, BorderRadius, Spacing } from '@/core/theme';
 import {
+  budgetOverviews,
   procurementClassifications,
   transparencySections,
   type TransparencyAttachment,
@@ -34,6 +36,14 @@ const SECTION_COLORS: Record<TransparencyCategory, string> = {
   'financial-report': BrandColors.progress,
   procurement: BrandColors.gold,
 };
+
+const BUDGET_SECTOR_COLORS = [
+  BrandColors.crimson,
+  BrandColors.gold,
+  BrandColors.progress,
+  BrandColors.garnet,
+  BrandColors.muted,
+];
 
 export default function TransparencyScreen() {
   const [mode, setMode] = React.useState<ViewMode>('hub');
@@ -194,6 +204,14 @@ function ListView({
         </ThemedText>
       </View>
 
+      {section.id === 'annual-budget' ? (
+        <BudgetOverviewPanel
+          selectedYear={dateFilter === 'all' ? undefined : dateFilter}
+          tone={tone}
+          onYearChange={onDateFilterChange}
+        />
+      ) : null}
+
       <View style={styles.toolbar}>
         <View style={styles.searchBox}>
           <ThemedText type="caption" color={BrandColors.muted}>
@@ -214,7 +232,7 @@ function ListView({
         </View>
       </View>
 
-      {dateOptions.length > 0 ? (
+      {dateOptions.length > 0 && section.id !== 'annual-budget' ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.filterRow}>
             <ClassificationChip
@@ -269,6 +287,174 @@ function ListView({
         ))}
       </View>
     </>
+  );
+}
+
+function BudgetOverviewPanel({
+  selectedYear,
+  tone,
+  onYearChange,
+}: {
+  selectedYear?: string;
+  tone: string;
+  onYearChange: (year: DateFilter) => void;
+}) {
+  const overviewYears = React.useMemo(
+    () => budgetOverviews.map((overview) => overview.year).sort((a, b) => Number(b) - Number(a)),
+    [],
+  );
+  const activeYear = selectedYear ?? overviewYears[0];
+  const overview =
+    budgetOverviews.find((item) => item.year === activeYear) ?? budgetOverviews[0];
+  const totalAmount =
+    overview.totalAmount ??
+    overview.sectors.reduce((sum, sector) => sum + sector.amount, 0);
+  const hasBreakdown = totalAmount > 0 && overview.sectors.length > 0;
+
+  return (
+    <View style={styles.budgetPanel}>
+      <View style={styles.budgetPanelTop}>
+        <View style={styles.budgetCopy}>
+          <ThemedText type="caption" color={tone}>
+            City budget overview
+          </ThemedText>
+          <ThemedText type="subtitle" color={BrandColors.charcoal}>
+            {overview.title}
+          </ThemedText>
+          <ThemedText type="bodySmall" color={BrandColors.muted}>
+            {hasBreakdown
+              ? `${overview.sectors.length} sectors in the official breakdown.`
+              : 'Sector totals are not parsed yet. Open the source budget to review the official document.'}
+          </ThemedText>
+        </View>
+        <DonutChart sectors={overview.sectors} totalAmount={totalAmount} tone={tone} />
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={styles.filterRow}>
+          {overviewYears.map((year) => (
+            <ClassificationChip
+              key={year}
+              title={year}
+              active={activeYear === year}
+              tone={tone}
+              onPress={() => onYearChange(year)}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.budgetStatsRow}>
+        <View style={styles.budgetStat}>
+          <ThemedText type="caption" color={BrandColors.muted}>
+            Total
+          </ThemedText>
+          <ThemedText type="subtitle" color={BrandColors.charcoal}>
+            {hasBreakdown ? formatPeso(totalAmount) : 'Pending'}
+          </ThemedText>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Open source budget for ${overview.title}`}
+          onPress={() => openUrl(overview.sourceUrl)}
+          style={({ pressed }) => [
+            styles.sourcePillButton,
+            { borderColor: tone },
+            pressed && styles.pressed,
+          ]}
+        >
+          <ThemedText type="caption" color={tone}>
+            Open source
+          </ThemedText>
+        </Pressable>
+      </View>
+
+      {hasBreakdown ? (
+        <View style={styles.sectorList}>
+          {overview.sectors.map((sector, index) => (
+            <View key={sector.id} style={styles.sectorRow}>
+              <View
+                style={[
+                  styles.sectorDot,
+                  { backgroundColor: sector.color ?? BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length] },
+                ]}
+              />
+              <ThemedText type="bodySmall" color={BrandColors.charcoal}>
+                {sector.label}
+              </ThemedText>
+              <ThemedText type="caption" color={BrandColors.muted}>
+                {formatPeso(sector.amount)}
+              </ThemedText>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function DonutChart({
+  sectors,
+  totalAmount,
+  tone,
+}: {
+  sectors: { amount: number; color?: string }[];
+  totalAmount: number;
+  tone: string;
+}) {
+  const size = 132;
+  const strokeWidth = 18;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const hasBreakdown = totalAmount > 0 && sectors.length > 0;
+
+  return (
+    <View style={styles.donutWrap}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={hasBreakdown ? `${tone}20` : BrandColors.warmGray}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        {hasBreakdown
+          ? sectors.map((sector, index) => {
+              const segment = (sector.amount / totalAmount) * circumference;
+              const dashOffset = -offset;
+              offset += segment;
+
+              return (
+                <Circle
+                  key={`${sector.amount}-${index}`}
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={sector.color ?? BUDGET_SECTOR_COLORS[index % BUDGET_SECTOR_COLORS.length]}
+                  strokeWidth={strokeWidth}
+                  fill="none"
+                  strokeDasharray={`${segment} ${circumference - segment}`}
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
+                  rotation="-90"
+                  originX={size / 2}
+                  originY={size / 2}
+                />
+              );
+            })
+          : null}
+      </Svg>
+      <View style={styles.donutCenter}>
+        <ThemedText type="caption" color={hasBreakdown ? tone : BrandColors.muted}>
+          {hasBreakdown ? 'Total' : 'No totals'}
+        </ThemedText>
+        <ThemedText type="caption" color={BrandColors.charcoal}>
+          {hasBreakdown ? formatCompactPeso(totalAmount) : 'Yet'}
+        </ThemedText>
+      </View>
+    </View>
   );
 }
 
@@ -591,6 +777,19 @@ function classificationTitle(classification: ProcurementClassification) {
   );
 }
 
+function formatPeso(value: number) {
+  return `PHP ${new Intl.NumberFormat('en-PH', {
+    maximumFractionDigits: 0,
+  }).format(value)}`;
+}
+
+function formatCompactPeso(value: number) {
+  return `PHP ${new Intl.NumberFormat('en-PH', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value)}`;
+}
+
 function recordKey(record: TransparencyRecord) {
   return `${record.id}-${record.sourceUrl}`;
 }
@@ -655,6 +854,69 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     gap: Spacing.md,
+  },
+  budgetPanel: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    backgroundColor: BrandColors.white,
+    borderWidth: 1,
+    borderColor: BrandColors.warmGray,
+    boxShadow: '0 8px 24px rgba(42, 42, 42, 0.08)',
+  },
+  budgetPanelTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  budgetCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  donutWrap: {
+    width: 132,
+    height: 132,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  donutCenter: {
+    position: 'absolute',
+    alignItems: 'center',
+    gap: 2,
+  },
+  budgetStatsRow: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  budgetStat: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  sourcePillButton: {
+    minHeight: 42,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectorList: {
+    gap: Spacing.sm,
+  },
+  sectorRow: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sectorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: BorderRadius.full,
   },
   searchBox: {
     minHeight: 54,

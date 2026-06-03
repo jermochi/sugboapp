@@ -1,4 +1,5 @@
 import annualBudgets from '@/../assets/data/transparency/annual-budgets.json';
+import budgetOverview from '@/../assets/data/transparency/budget-overview.json';
 import financialReports from '@/../assets/data/transparency/financial-reports.json';
 import procurements from '@/../assets/data/transparency/procurements.json';
 
@@ -34,6 +35,21 @@ export interface TransparencySection {
   eyebrow: string;
   description: string;
   records: TransparencyRecord[];
+}
+
+export interface BudgetSector {
+  id: string;
+  label: string;
+  amount: number;
+  color?: string;
+}
+
+export interface BudgetOverview {
+  year: string;
+  title: string;
+  sourceUrl: string;
+  totalAmount: number | null;
+  sectors: BudgetSector[];
 }
 
 function normalize(records: TransparencyRecord[]): TransparencyRecord[] {
@@ -135,3 +151,5 @@ export const transparencySections: TransparencySection[] = [
 ];
 
 export const transparencyRecords = transparencySections.flatMap((section) => section.records);
+
+export const budgetOverviews = budgetOverview as BudgetOverview[];
