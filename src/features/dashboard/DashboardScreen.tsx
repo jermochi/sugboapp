@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { navigateTo } from '@/core/routing';
+import { navigateTo, Routes } from '@/core/routing';
 import { BrandColors, Fonts } from '@/core/theme';
 import { Strings } from '@/l10n/strings';
 
@@ -67,9 +67,9 @@ function chunk(list: ServiceQuickLink[], size: number): ServiceQuickLink[][] {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
 
-  // Opens the Sugbo AI / Giya conversation. AI screen is not built yet (M1).
+  // Opens the visual shell for the Sugbo AI / Giya conversation.
   const handleAsk = () => {
-    // TODO(M1): navigate to the Sugbo AI / Giya conversation flow.
+    navigateTo(Routes.GIYA_CHAT);
   };
 
   const handleService = (service: ServiceQuickLink) => {
