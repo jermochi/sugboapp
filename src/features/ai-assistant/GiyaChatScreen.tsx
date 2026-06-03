@@ -1,9 +1,10 @@
 /**
- * GiyaChatScreen - presentation-only port of `.local/design_handoff_giya_chat`.
+ * GiyaChatScreen — the Giya conversational assistant (voice-first).
  *
- * This intentionally stops at screen integration. The composer, chips, add,
- * mic, send, and new-chat controls are visual affordances until M1 wires the
- * real assistant behavior.
+ * The welcome state leads with a large mic button under the greeting; tapping
+ * "Type instead" reveals the text composer in the bottom bar. Once a
+ * conversation starts, messages fill the screen and the input docks to the
+ * bottom. Voice and text both route through the chat store / route_to_service.
  */
 
 import { Icon, type IconName } from '@/core/components';
@@ -12,14 +13,13 @@ import { useConnectivityStore } from '@/core/services/connectivityService';
 import { BrandColors, Fonts } from '@/core/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -34,19 +34,6 @@ import { useVoiceCapture } from './hooks/useVoiceCapture';
 import { useGiyaChatStore } from './store/giyaChatStore';
 
 const GIYA_HEAD = require('../../../assets/images/giya-head.png');
-
-const CHIPS: { icon: IconName; label: string }[] = [
-  { icon: 'services', label: 'Pangitaa ang serbisyo' },
-  { icon: 'report', label: 'I-report ang problema' },
-  { icon: 'permit', label: 'Business permit' },
-  { icon: 'hotline', label: 'City hotlines' },
-  { icon: 'news', label: 'Bag-ong balita' },
-  { icon: 'tax', label: 'Pagbayad ug buhis' },
-  { icon: 'pin', label: 'Duol nga opisina' },
-  { icon: 'calendar', label: 'Mga okasyon' },
-  { icon: 'document', label: 'Birth certificate' },
-  { icon: 'help', label: 'Unsaon pag-apply' },
-];
 
 function GiyaBackground() {
   const { width, height } = useWindowDimensions();
@@ -216,37 +203,6 @@ function GiyaPortrait({ size = 190 }: { size?: number }) {
   );
 }
 
-function GiyaChip({
-  icon,
-  label,
-  onPress,
-}: {
-  icon: IconName;
-  label: string;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
-    >
-      <LinearGradient
-        colors={['rgba(255,221,150,0.95)', 'rgba(218,165,32,0.85)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.chipIcon}
-      >
-        <Icon name={icon} size={17} color="#7c0d0d" strokeWidth={2} />
-      </LinearGradient>
-      <Text style={styles.chipLabel} numberOfLines={1}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 function ComposerButton({
   icon,
   label,
@@ -339,7 +295,7 @@ function VoiceMic({
         end={{ x: 1, y: 1 }}
         style={styles.voiceMicGradient}
       >
-        <Icon name="mic" size={30} color={recording ? '#fff' : '#7c0d0d'} strokeWidth={2} />
+        <Icon name="mic" size={40} color={recording ? '#fff' : '#7c0d0d'} strokeWidth={2} />
       </LinearGradient>
     </Pressable>
   );
@@ -364,14 +320,6 @@ export default function GiyaChatScreen() {
   // Leaving the chat ends the session \u2014 start fresh next time.
   useEffect(() => reset, [reset]);
 
-  const chipColumns = useMemo(() => {
-    const columns: (typeof CHIPS)[] = [];
-    for (let i = 0; i < CHIPS.length; i += 2) {
-      columns.push(CHIPS.slice(i, i + 2));
-    }
-    return columns;
-  }, []);
-
   const handleSend = () => {
     const text = draft.trim();
     if (!text || isThinking) return;
@@ -379,15 +327,46 @@ export default function GiyaChatScreen() {
     void sendText(text);
   };
 
-  const handleChip = (label: string) => {
-    if (isThinking || isRecording) return;
-    void sendText(label);
-  };
-
   const handleMic = () => {
     if (isThinking || voice.isBusy) return;
     voice.toggle();
   };
+
+  const offlineNote = !isOnline ? (
+    <Text style={styles.offlineNote}>{'Offline · basic routing only'}</Text>
+  ) : null;
+
+  const voiceDock = (
+    <View style={styles.voiceDock}>
+      <Text style={styles.voiceHint}>
+        {isRecording
+          ? 'Listening… tap to stop'
+          : voice.isBusy
+            ? 'Got it — one sec…'
+            : isThinking
+              ? 'Giya is thinking…'
+              : 'Tap to speak'}
+      </Text>
+      <VoiceMic recording={isRecording} onPress={handleMic} />
+      <Pressable
+        onPress={() => setInputMode('text')}
+        disabled={isRecording || voice.isBusy}
+        accessibilityRole="button"
+        accessibilityLabel="Type instead"
+        style={({ pressed }) => [
+          styles.keyboardToggle,
+          (pressed || isRecording || voice.isBusy) && styles.pressed,
+        ]}
+      >
+        <Icon name="keyboard" size={18} color="#FFE7B8" strokeWidth={2} />
+        <Text style={styles.keyboardToggleLabel}>Type instead</Text>
+      </Pressable>
+    </View>
+  );
+
+  // The big mic lives up in the hero on the welcome screen; once a conversation
+  // starts (or the user switches to typing) it moves to the bottom bar.
+  const showBottomBar = inputMode === 'text' || hasConversation;
 
   return (
     <View style={styles.root}>
@@ -410,118 +389,74 @@ export default function GiyaChatScreen() {
         {hasConversation ? (
           <MessageList messages={messages} />
         ) : (
-          <>
-            <View style={styles.hero}>
-              <GiyaPortrait />
-              <View style={styles.greeting}>
-                <Text style={styles.headline}>{'How Can I Help\nYou Today?'}</Text>
-                <Text style={styles.subtitle}>{'Ako si Giya \u00b7 Ask me anything'}</Text>
-              </View>
+          <View style={styles.hero}>
+            <GiyaPortrait />
+            <View style={styles.greeting}>
+              <Text style={styles.headline}>{'How Can I Help\nYou Today?'}</Text>
+              <Text style={styles.subtitle}>{'Ako si Giya \u00b7 Ask me anything'}</Text>
             </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentOffset={{ x: 118, y: 0 }}
-              contentContainerStyle={styles.chipTrack}
-              style={styles.chipScroll}
-            >
-              {chipColumns.map((column, index) => (
-                <View key={index} style={styles.chipColumn}>
-                  {column.map((chip) => (
-                    <GiyaChip
-                      key={chip.label}
-                      icon={chip.icon}
-                      label={chip.label}
-                      onPress={() => handleChip(chip.label)}
-                    />
-                  ))}
-                </View>
-              ))}
-            </ScrollView>
-          </>
+            {inputMode === 'voice' && (
+              <View style={styles.heroDock}>
+                {offlineNote}
+                {voiceDock}
+              </View>
+            )}
+          </View>
         )}
 
-        <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, 16) + 14 }]}>
-          {!isOnline && (
-            <Text style={styles.offlineNote}>
-              {'Offline \u00b7 basic routing only'}
-            </Text>
-          )}
-
-          {inputMode === 'voice' ? (
-            <View style={styles.voiceDock}>
-              <Text style={styles.voiceHint}>
-                {isRecording
-                  ? 'Listening\u2026 tap to stop'
-                  : voice.isBusy
-                    ? 'Got it \u2014 one sec\u2026'
-                    : isThinking
-                      ? 'Giya is thinking\u2026'
-                      : 'Tap to speak'}
-              </Text>
-              <VoiceMic recording={isRecording} onPress={handleMic} />
-              <Pressable
-                onPress={() => setInputMode('text')}
-                disabled={isRecording || voice.isBusy}
-                accessibilityRole="button"
-                accessibilityLabel="Type instead"
-                style={({ pressed }) => [
-                  styles.keyboardToggle,
-                  (pressed || isRecording || voice.isBusy) && styles.pressed,
-                ]}
-              >
-                <Icon name="keyboard" size={16} color="#FFE7B8" strokeWidth={2} />
-                <Text style={styles.keyboardToggleLabel}>Type instead</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.composer}>
-              <ComposerButton
-                icon="mic"
-                label={isRecording ? 'Stop recording' : 'Speak'}
-                onPress={handleMic}
-                active={isRecording}
-                disabled={isThinking || voice.isBusy}
-              />
-              <TextInput
-                style={styles.input}
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={isRecording ? 'Listening\u2026' : 'Type what you want to know\u2026'}
-                placeholderTextColor="rgba(255,243,224,0.6)"
-                returnKeyType="send"
-                onSubmitEditing={handleSend}
-                editable={!isThinking && !isRecording}
-                autoFocus
-                multiline
-              />
-              <Pressable
-                onPress={handleSend}
-                disabled={!draft.trim() || isThinking}
-                accessibilityRole="button"
-                accessibilityLabel="Send"
-                style={({ pressed }) => [
-                  styles.sendButton,
-                  (!draft.trim() || isThinking) && styles.pressed,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <LinearGradient
-                  colors={['#ffd98a', BrandColors.gold, '#b8860b']}
-                  locations={[0, 0.6, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.sendGradient}
+        {showBottomBar && (
+          <View style={[styles.composerWrap, { paddingBottom: Math.max(insets.bottom, 16) + 14 }]}>
+            {offlineNote}
+            {inputMode === 'voice' ? (
+              voiceDock
+            ) : (
+              <View style={styles.composer}>
+                <ComposerButton
+                  icon="mic"
+                  label={isRecording ? 'Stop recording' : 'Speak'}
+                  onPress={handleMic}
+                  active={isRecording}
+                  disabled={isThinking || voice.isBusy}
+                />
+                <TextInput
+                  style={styles.input}
+                  value={draft}
+                  onChangeText={setDraft}
+                  placeholder={isRecording ? 'Listening\u2026' : 'Type what you want to know\u2026'}
+                  placeholderTextColor="rgba(255,243,224,0.6)"
+                  returnKeyType="send"
+                  onSubmitEditing={handleSend}
+                  editable={!isThinking && !isRecording}
+                  autoFocus
+                  multiline
+                />
+                <Pressable
+                  onPress={handleSend}
+                  disabled={!draft.trim() || isThinking}
+                  accessibilityRole="button"
+                  accessibilityLabel="Send"
+                  style={({ pressed }) => [
+                    styles.sendButton,
+                    (!draft.trim() || isThinking) && styles.pressed,
+                    pressed && styles.pressed,
+                  ]}
                 >
-                  <View style={{ transform: [{ translateX: 1 }] }}>
-                    <Icon name="send" size={20} color="#7c0d0d" strokeWidth={2} />
-                  </View>
-                </LinearGradient>
-              </Pressable>
-            </View>
-          )}
-        </View>
+                  <LinearGradient
+                    colors={['#ffd98a', BrandColors.gold, '#b8860b']}
+                    locations={[0, 0.6, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.sendGradient}
+                  >
+                    <View style={{ transform: [{ translateX: 1 }] }}>
+                      <Icon name="send" size={20} color="#7c0d0d" strokeWidth={2} />
+                    </View>
+                  </LinearGradient>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
       </KeyboardAvoidingView>
       <StatusBar style="light" translucent />
     </View>
@@ -636,48 +571,9 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
-  chipScroll: {
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  chipTrack: {
-    paddingHorizontal: 20,
-    paddingBottom: 18,
-    columnGap: 10,
-  },
-  chipColumn: {
-    gap: 10,
-  },
-  chip: {
-    minHeight: 48,
-    flexDirection: 'row',
+  heroDock: {
+    marginTop: 34,
     alignItems: 'center',
-    gap: 9,
-    paddingTop: 8,
-    paddingRight: 15,
-    paddingBottom: 8,
-    paddingLeft: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.09)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.22)',
-  },
-  chipIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  chipLabel: {
-    fontFamily: Fonts.bodySemiBold,
-    fontSize: 13,
-    color: '#FFF3E0',
-    letterSpacing: 0.1,
   },
   composerWrap: {
     paddingHorizontal: 18,
@@ -692,39 +588,39 @@ const styles = StyleSheet.create({
   },
   voiceDock: {
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     paddingTop: 2,
   },
   voiceHint: {
     fontFamily: Fonts.bodySemiBold,
-    fontSize: 12.5,
+    fontSize: 13,
     color: 'rgba(255,236,196,0.82)',
     letterSpacing: 0.3,
   },
   voiceMicWrap: {
-    width: 76,
-    height: 76,
+    width: 104,
+    height: 104,
     alignItems: 'center',
     justifyContent: 'center',
   },
   voiceMicPulse: {
     position: 'absolute',
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     backgroundColor: 'rgba(215,38,49,0.45)',
   },
   voiceMicGradient: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.34,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.36,
+    shadowRadius: 14,
+    elevation: 12,
   },
   keyboardToggle: {
     flexDirection: 'row',
