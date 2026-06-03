@@ -16,15 +16,21 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 export type IconName =
   | 'search'
   | 'mic'
+  | 'plus'
+  | 'send'
   | 'chevron'
   | 'clock'
   | 'permit'
   | 'tax'
   | 'report'
+  | 'hotline'
+  | 'pin'
+  | 'help'
   | 'medical'
   | 'seniors'
   | 'document'
   | 'budget'
+  | 'keyboard'
   | 'calendar'
   | 'home'
   | 'services'
@@ -51,6 +57,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <Path d="M5 11a7 7 0 0014 0M12 18v3" />
     </>
   ),
+  plus: <Path d="M12 5v14M5 12h14" />,
+  send: <Path d="M4 12l16-7-7 16-2.5-6.5L4 12z" />,
   chevron: <Path d="M9 5l7 7-7 7" />,
   clock: (
     <>
@@ -75,6 +83,20 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <Path d="M6 21V4" />
       <Path d="M6 4.4h11l-2.3 3.6L17 11.6H6" />
+    </>
+  ),
+  hotline: <Path d="M5 4h3l1.6 4-2 1.4a11 11 0 005 5l1.4-2 4 1.6V18a2 2 0 01-2.2 2A15 15 0 015 6.2 2 2 0 015 4z" />,
+  pin: (
+    <>
+      <Path d="M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" />
+      <Circle cx={12} cy={10} r={2.5} />
+    </>
+  ),
+  help: (
+    <>
+      <Circle cx={12} cy={12} r={8.5} />
+      <Path d="M9.6 9.3a2.5 2.5 0 014.3 1.7c0 1.8-2.1 2-2.1 3.4" />
+      <Path d="M11.9 17.4v.01" strokeWidth={1.9} />
     </>
   ),
   medical: <Path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z" />,
@@ -107,6 +129,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <Rect x={4} y={5} width={16} height={15} rx={2} />
       <Path d="M4 9.2h16M8 3v4M16 3v4" />
       <Path d="M8.5 13h3M8.5 16.4h6" strokeWidth={1.4} />
+    </>
+  ),
+  keyboard: (
+    <>
+      <Rect x={2.5} y={6} width={19} height={12} rx={2} />
+      <Path
+        d="M6 9.5h0M9.5 9.5h0M13 9.5h0M16.5 9.5h0M6 12.8h0M9.5 12.8h0M13 12.8h0M16.5 12.8h0M8 15.6h8"
+        strokeWidth={1.7}
+      />
     </>
   ),
   home: (
