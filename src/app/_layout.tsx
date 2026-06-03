@@ -60,7 +60,12 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen
           name="transparency"
-          options={{ headerShown: true, title: 'Transparency Tracker' }}
+          options={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+            statusBarBackgroundColor: '#FFFFFF',
+            statusBarStyle: 'dark',
+          }}
         />
         <Stack.Screen
           name="permit"
