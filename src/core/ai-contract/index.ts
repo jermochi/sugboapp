@@ -3,6 +3,7 @@ export { AIFunctionRegistry, aiFunctionRegistry } from './registry';
 export { registerCoreHandlers } from './registerHandlers';
 export {
   routeToServiceHandler,
+  navigateToService,
   SERVICE_CATALOG,
   ROUTABLE_SERVICE_IDS,
 } from './handlers/routeToServiceHandler';

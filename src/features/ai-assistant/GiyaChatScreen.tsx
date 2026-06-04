@@ -309,6 +309,7 @@ export default function GiyaChatScreen() {
   const messages = useGiyaChatStore((s) => s.messages);
   const status = useGiyaChatStore((s) => s.status);
   const sendText = useGiyaChatStore((s) => s.sendText);
+  const followAction = useGiyaChatStore((s) => s.followAction);
   const reset = useGiyaChatStore((s) => s.reset);
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const voice = useVoiceCapture();
@@ -387,7 +388,7 @@ export default function GiyaChatScreen() {
         </View>
 
         {hasConversation ? (
-          <MessageList messages={messages} />
+          <MessageList messages={messages} onAction={followAction} />
         ) : (
           <View style={styles.hero}>
             <GiyaPortrait />

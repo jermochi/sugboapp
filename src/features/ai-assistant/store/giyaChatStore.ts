@@ -8,19 +8,21 @@
  *
  * Turn flow:
  *   1. The user's message (text, or a voice placeholder) is added.
- *   2. If online + a key is configured, ask Gemini with the route_to_service
- *      tool. If the model calls it, dispatch through the registry (which
- *      navigates), feed the result back, and let the model confirm in the
- *      user's own language.
+ *   2. If online + a key is configured, ask Gemini with the registered tools.
+ *      If the model calls one, dispatch through the registry, feed the result
+ *      back, and let the model reply in the user's own language.
  *   3. If Gemini is unavailable or errors, fall back to keyword routing.
  *
- * Navigation only ever happens via the route_to_service handler, grounded in
- * the core SERVICE_CATALOG — the store never invents a destination.
+ * Giya never navigates the user automatically: when a destination is relevant a
+ * handler returns a `link`, which is surfaced as a tappable button. Actual
+ * navigation happens only on tap (followAction → navigateToService), grounded
+ * in the core SERVICE_CATALOG — the store never invents a destination.
  */
 
 import { create } from 'zustand';
 
-import { aiFunctionRegistry } from '@/core/ai-contract';
+import { aiFunctionRegistry, navigateToService } from '@/core/ai-contract';
+import type { IconName } from '@/core/components';
 import { connectivityService } from '@/core/services/connectivityService';
 
 import type { AudioPayload } from '../services/audioRecorder';
@@ -35,6 +37,23 @@ import { matchIntent } from '../services/intentFallback';
 
 export type ChatRole = 'user' | 'assistant';
 
+/**
+ * A tappable "go deeper" link surfaced as its own button-styled message. A
+ * handler emits this (via a `link` field on its response) when it can point the
+ * user at the exact place in-app for more on their query; the store renders it
+ * as a chip and navigates (navigateToService) only when the user taps it.
+ */
+export interface ChatAction {
+  /** Button label, e.g. "View the 2026 budget breakdown". */
+  label: string;
+  /** A SERVICE_CATALOG serviceId the tap navigates to (via navigateToService). */
+  serviceId: string;
+  /** Optional route params, e.g. { section: "annual-budget" }. */
+  params?: Record<string, string>;
+  /** Optional leading icon for the chip. */
+  icon?: IconName;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -45,6 +64,8 @@ export interface ChatMessage {
   voice?: boolean;
   /** True while the spoken clip is still being transcribed. */
   transcribing?: boolean;
+  /** When set, this message renders as a tappable deep-link button. */
+  action?: ChatAction;
 }
 
 export type ChatStatus = 'idle' | 'thinking';
@@ -54,13 +75,37 @@ interface GiyaChatState {
   status: ChatStatus;
   sendText: (text: string) => Promise<void>;
   sendAudio: (payload: AudioPayload) => Promise<void>;
+  followAction: (action: ChatAction) => Promise<void>;
   reset: () => void;
+}
+
+/**
+ * Pull a deep-link action out of this turn's function responses. A handler
+ * opts in by returning a `link: { label, serviceId, params?, icon? }`; we only
+ * surface a button when those required fields are present (so it appears only
+ * where the handler deemed it reasonable — e.g. a real budget answer).
+ */
+function actionFromResponses(
+  responses: { name: string; response: Record<string, unknown> }[],
+): ChatAction | null {
+  for (const { response } of responses) {
+    const link = response.link as Partial<ChatAction> | undefined;
+    if (link && typeof link.label === 'string' && typeof link.serviceId === 'string') {
+      return {
+        label: link.label,
+        serviceId: link.serviceId,
+        params: link.params,
+        icon: link.icon,
+      };
+    }
+  }
+  return null;
 }
 
 /** Bilingual canned lines for the offline / no-Gemini fallback path. */
 const FALLBACK = {
-  navigated: (service: string) =>
-    `Sige! Giablihan nako ang ${service} para nimo. · Opening ${service} for you.`,
+  linked: (service: string) =>
+    `Ania ang link sa ${service} para nimo — i-tap lang. · Here's the link to ${service} — just tap it.`,
   comingSoon: (service: string) =>
     `Pasensya, wala pa andam ang ${service} — hapit na ni! · ${service} isn't ready yet — coming soon!`,
   clarify:
@@ -119,6 +164,13 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }));
   }
 
+  /** Append a button-styled deep-link message after the assistant's reply. */
+  function appendAction(action: ChatAction) {
+    set((s) => ({
+      messages: [...s.messages, { id: nextId(), role: 'assistant', text: '', action }],
+    }));
+  }
+
   /** Gemini path: tool call → dispatch → confirmation, with fallback on error. */
   async function runGemini(
     contents: GeminiContent[],
@@ -129,6 +181,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     try {
       let turn = await generateContent(contents);
       const working = [...contents];
+      let pendingAction: ChatAction | null = null;
 
       if (turn.functionCalls.length > 0) {
         working.push(turn.raw);
@@ -146,6 +199,8 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
             return { name: fc.name, response };
           }),
         );
+        // A handler may attach a deep-link the user can tap for more detail.
+        pendingAction = actionFromResponses(responses);
         working.push({
           role: 'user',
           parts: responses.map((r) => ({ functionResponse: r })),
@@ -154,6 +209,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
       }
 
       resolveAssistant(pendingId, turn.text || FALLBACK.clarify);
+      if (pendingAction) appendAction(pendingAction);
     } catch (err) {
       if (__DEV__ && err instanceof GeminiError) {
         console.warn('[Giya] Gemini turn failed:', err.message);
@@ -179,12 +235,16 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
         serviceId,
       });
       const service = String(result.service ?? serviceId);
-      resolveAssistant(
-        pendingId,
-        result.available
-          ? FALLBACK.navigated(service)
-          : FALLBACK.comingSoon(service),
-      );
+      if (result.available) {
+        // Surface the link button instead of navigating — same as the online path.
+        resolveAssistant(pendingId, FALLBACK.linked(service));
+        const action = actionFromResponses([
+          { name: 'route_to_service', response: result },
+        ]);
+        if (action) appendAction(action);
+      } else {
+        resolveAssistant(pendingId, FALLBACK.comingSoon(service));
+      }
     } catch {
       resolveAssistant(pendingId, FALLBACK.error);
     }
@@ -272,6 +332,11 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
       // Show what was heard, then route it exactly like a typed message.
       finalizeVoiceBubble(voiceId, transcript);
       await execute(toContents(get().messages), transcript, true);
+    },
+
+    async followAction(action: ChatAction) {
+      // The only place navigation actually happens — when the user taps a link.
+      navigateToService(action.serviceId, action.params);
     },
 
     reset() {
