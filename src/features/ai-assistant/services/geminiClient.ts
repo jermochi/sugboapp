@@ -149,9 +149,12 @@ export async function generateContent(
       contents,
       tools: buildTools(),
       generationConfig: {
-        temperature: 0.4,
-        // Thinking budget off (SDD): keep replies fast for a routing task.
-        thinkingConfig: { thinkingBudget: 0 },
+        // Low temperature + dynamic thinking make the tool-vs-text decision
+        // (e.g. "should I call ask_clarification?") consistent turn to turn.
+        // With thinking off (budget 0) the model skipped that deliberation and
+        // would intermittently ask questions as plain text instead of chips.
+        temperature: 0.1,
+        thinkingConfig: { thinkingBudget: -1 },
       },
     },
     signal,

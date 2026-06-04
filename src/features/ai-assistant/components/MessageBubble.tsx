@@ -60,17 +60,21 @@ export function MessageBubble({
 
         {options.length > 0 ? (
           <View style={styles.options}>
-            {options.map((option) => (
-              <Pressable
-                key={option}
-                onPress={() => onChoose?.(option)}
-                accessibilityRole="button"
-                accessibilityLabel={option}
-                style={({ pressed }) => [styles.choiceChip, pressed && styles.pressed]}
-              >
-                <Text style={styles.choiceText}>{option}</Text>
-              </Pressable>
-            ))}
+            <Text style={styles.optionsHint}>TAP TO CHOOSE</Text>
+            <View style={styles.optionRow}>
+              {options.map((option) => (
+                <Pressable
+                  key={option}
+                  onPress={() => onChoose?.(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option}
+                  style={({ pressed }) => [styles.choiceChip, pressed && styles.choiceChipPressed]}
+                >
+                  <Text style={styles.choiceText}>{option}</Text>
+                  <Text style={styles.choiceChevron}>›</Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -143,22 +147,47 @@ const styles = StyleSheet.create({
     color: '#FFF3E0',
   },
   options: {
+    width: '100%',
+    gap: 6,
+  },
+  optionsHint: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: 'rgba(255,221,150,0.72)',
+    marginLeft: 4,
+  },
+  optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
   choiceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.30)',
+    paddingVertical: 9,
+    backgroundColor: 'rgba(255,221,150,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,221,150,0.55)',
+  },
+  choiceChipPressed: {
+    opacity: 0.78,
+    backgroundColor: 'rgba(255,221,150,0.22)',
   },
   choiceText: {
     fontFamily: Fonts.bodySemiBold,
     fontSize: 13.5,
     color: '#FFE7B8',
+  },
+  choiceChevron: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 16,
+    lineHeight: 16,
+    color: 'rgba(255,221,150,0.85)',
+    marginTop: -1,
   },
   routeButton: {
     borderRadius: 999,
