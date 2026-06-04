@@ -4,6 +4,7 @@
  */
 
 import * as WebBrowser from 'expo-web-browser';
+import { useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
   Pressable,
@@ -68,10 +69,22 @@ const BUDGET_SECTOR_COLORS = [
   ...UI_COLORS.chart,
 ];
 
+/** Validate a free-text route param against the known section ids. */
+function asTransparencyCategory(value?: string): TransparencyCategory | null {
+  return transparencySections.some((section) => section.id === value)
+    ? (value as TransparencyCategory)
+    : null;
+}
+
 export default function TransparencyScreen() {
-  const [mode, setMode] = React.useState<ViewMode>('hub');
+  // Giya deep-links here with ?section=annual-budget to land straight on the
+  // budget charts; absent/invalid, we open the hub as usual.
+  const params = useLocalSearchParams<{ section?: string }>();
+  const initialSection = asTransparencyCategory(params.section);
+
+  const [mode, setMode] = React.useState<ViewMode>(initialSection ? 'list' : 'hub');
   const [activeSectionId, setActiveSectionId] =
-    React.useState<TransparencyCategory>('annual-budget');
+    React.useState<TransparencyCategory>(initialSection ?? 'annual-budget');
   const [selectedRecordKey, setSelectedRecordKey] = React.useState('');
   const [query, setQuery] = React.useState('');
   const [dateFilter, setDateFilter] = React.useState<DateFilter>('all');
