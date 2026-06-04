@@ -6,15 +6,27 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Fonts } from '@/core/theme';
+import { Icon } from '@/core/components';
+import { BrandColors, Fonts } from '@/core/theme';
 
-import type { ChatMessage } from '../store/giyaChatStore';
+import type { ChatAction, ChatMessage } from '../store/giyaChatStore';
 import { TypingIndicator } from './TypingIndicator';
 
-export function MessageBubble({ message }: { message: ChatMessage }) {
+export function MessageBubble({
+  message,
+  onAction,
+}: {
+  message: ChatMessage;
+  onAction?: (action: ChatAction) => void;
+}) {
   const isUser = message.role === 'user';
+
+  // A deep-link message renders as a tappable button rather than a text bubble.
+  if (message.action) {
+    return <ActionChip action={message.action} onPress={onAction} />;
+  }
 
   if (isUser) {
     return (
@@ -44,6 +56,42 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
           <Text style={[styles.text, styles.textGiya]}>{message.text}</Text>
         )}
       </View>
+    </View>
+  );
+}
+
+/** A gold pill button that sits on Giya's side and deep-links into the app. */
+function ActionChip({
+  action,
+  onPress,
+}: {
+  action: ChatAction;
+  onPress?: (action: ChatAction) => void;
+}) {
+  return (
+    <View style={[styles.row, styles.rowGiya]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={action.label}
+        onPress={() => onPress?.(action)}
+        style={({ pressed }) => [styles.actionWrap, pressed && styles.actionPressed]}
+      >
+        <LinearGradient
+          colors={['#ffd98a', BrandColors.gold, '#b8860b']}
+          locations={[0, 0.6, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.actionChip}
+        >
+          {action.icon ? (
+            <Icon name={action.icon} size={17} color="#7c0d0d" strokeWidth={2} />
+          ) : null}
+          <Text style={styles.actionLabel} numberOfLines={2}>
+            {action.label}
+          </Text>
+          <Icon name="chevron" size={16} color="#7c0d0d" strokeWidth={2.4} />
+        </LinearGradient>
+      </Pressable>
     </View>
   );
 }
@@ -85,5 +133,32 @@ const styles = StyleSheet.create({
   },
   textGiya: {
     color: '#FFF3E0',
+  },
+  actionWrap: {
+    maxWidth: '82%',
+    borderRadius: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  actionPressed: {
+    opacity: 0.82,
+  },
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+  },
+  actionLabel: {
+    flexShrink: 1,
+    fontFamily: Fonts.bodyBold,
+    fontSize: 14,
+    color: '#7c0d0d',
+    letterSpacing: 0.2,
   },
 });

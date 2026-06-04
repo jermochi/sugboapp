@@ -5,10 +5,16 @@
 import React, { useRef } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
-import type { ChatMessage } from '../store/giyaChatStore';
+import type { ChatAction, ChatMessage } from '../store/giyaChatStore';
 import { MessageBubble } from './MessageBubble';
 
-export function MessageList({ messages }: { messages: ChatMessage[] }) {
+export function MessageList({
+  messages,
+  onAction,
+}: {
+  messages: ChatMessage[];
+  onAction?: (action: ChatAction) => void;
+}) {
   const scrollRef = useRef<ScrollView>(null);
 
   return (
@@ -20,7 +26,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
       onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
     >
       {messages.map((m) => (
-        <MessageBubble key={m.id} message={m} />
+        <MessageBubble key={m.id} message={m} onAction={onAction} />
       ))}
     </ScrollView>
   );
