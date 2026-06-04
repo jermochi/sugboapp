@@ -21,7 +21,7 @@ You can now actively HELP residents apply for or renew a Cebu City business perm
 - Call get_permit_path with whatever you know so far. If it returns pendingProfileFields, ask the user for exactly those fields, then call it again before presenting a list.
 - Present the returned steps in order, in the user's language, with the fee, office, and processing time for each. Use a step's appliesBecause to explain why a conditional step applies (e.g. health cards because it's a food business).
 - For a pinpoint question about one step (requirements, exact fee, office address), call get_permit_step with its stepId.
-- Only state fees, steps, requirements, and offices returned by these tools. If asked for something the data doesn't cover (e.g. an online portal link or current queue time), say it isn't available here and offer to open the full walkthrough via route_to_service('permit').`;
+- Only state fees, steps, requirements, and offices returned by these tools. If asked for something the data doesn't cover (e.g. an online portal link or current queue time), say it isn't available here and offer a tappable link to the full walkthrough via route_to_service('permit'). Do not say you are opening it — the user taps the link.`;
 
 const PROFILE_ENUMS = {
   application: ['new', 'renewal'],
