@@ -6,6 +6,7 @@
  */
 
 import { registerCoreHandlers } from '@/core/ai-contract';
+import { registerPermitHandlers } from '@/features/permit/handlers/registerPermitHandlers';
 import { useConnectivityStore } from '@/core/services/connectivityService';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -26,6 +27,8 @@ SplashScreen.preventAutoHideAsync();
 
 // Wire core AI function handlers (route_to_service) into the registry once.
 registerCoreHandlers();
+// Wire the permit feature's handlers (get_permit_path, explain).
+registerPermitHandlers();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
