@@ -6,7 +6,7 @@
  */
 
 import { registerCoreHandlers } from '@/core/ai-contract';
-import { registerPermitHandlers } from '@/features/permit/ai/registerPermitHandlers';
+import { registerPermitHandlers } from '@/features/permit/handlers/registerPermitHandlers';
 import { registerTransparencyHandlers } from '@/features/transparency/ai/registerTransparencyHandlers';
 import { useConnectivityStore } from '@/core/services/connectivityService';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -26,9 +26,9 @@ import { useColorScheme } from 'react-native';
 // Keep the splash screen up until the brand fonts are ready.
 SplashScreen.preventAutoHideAsync();
 
-// Wire AI function handlers into the registry once. Core owns route_to_service;
-// each feature registers its own (permit: get_permit_path/get_permit_step;
-// transparency: query_budget).
+// Wire AI function handlers into the registry once. Core owns route_to_service +
+// ask_clarification; each feature registers its own (permit: get_permit_path,
+// explain; transparency: query_budget).
 registerCoreHandlers();
 registerPermitHandlers();
 registerTransparencyHandlers();
@@ -80,7 +80,12 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="permit"
-          options={{ headerShown: true, title: 'Business Permit' }}
+          options={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+            statusBarBackgroundColor: '#FFFFFF',
+            statusBarStyle: 'dark',
+          }}
         />
         <Stack.Screen
           name="emergency"

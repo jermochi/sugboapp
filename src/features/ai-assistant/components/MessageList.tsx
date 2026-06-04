@@ -11,9 +11,11 @@ import { MessageBubble } from './MessageBubble';
 export function MessageList({
   messages,
   onAction,
+  onChoose,
 }: {
   messages: ChatMessage[];
   onAction?: (action: ChatAction) => void;
+  onChoose?: (option: string) => void;
 }) {
   const scrollRef = useRef<ScrollView>(null);
 
@@ -26,7 +28,7 @@ export function MessageList({
       onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
     >
       {messages.map((m) => (
-        <MessageBubble key={m.id} message={m} onAction={onAction} />
+        <MessageBubble key={m.id} message={m} onAction={onAction} onChoose={onChoose} />
       ))}
     </ScrollView>
   );

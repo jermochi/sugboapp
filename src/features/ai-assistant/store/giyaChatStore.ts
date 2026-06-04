@@ -1,22 +1,23 @@
 /**
  * giyaChatStore — conversation state + turn orchestration for the Giya chat.
  *
- * Two inputs, one routing turn:
- *   - sendText sends a typed message.
+ * Two inputs:
+ *   - sendText sends a typed message (also used when a user taps a choice chip).
  *   - sendAudio sends a recorded clip; Gemini transcribes and routes it. (No
  *     live captioning — kept simple so the app runs in Expo Go.)
  *
  * Turn flow:
  *   1. The user's message (text, or a voice placeholder) is added.
- *   2. If online + a key is configured, ask Gemini with the registered tools.
- *      If the model calls one, dispatch through the registry, feed the result
- *      back, and let the model reply in the user's own language.
+ *   2. If online + a key is configured, ask Gemini with the registered tools and
+ *      loop tool rounds: the model may call ask_clarification (→ render a
+ *      question with tappable option chips and stop), or data/route tools whose
+ *      results feed back until it replies with text.
  *   3. If Gemini is unavailable or errors, fall back to keyword routing.
  *
- * Giya never navigates the user automatically: when a destination is relevant a
- * handler returns a `link`, which is surfaced as a tappable button. Actual
- * navigation happens only on tap (followAction → navigateToService), grounded
- * in the core SERVICE_CATALOG — the store never invents a destination.
+ * Giya never navigates automatically: when a destination is relevant a handler
+ * surfaces it (a `link` object, or an inline available+serviceId), and the store
+ * renders a tappable button. Navigation happens only on tap (followAction →
+ * navigateToService), grounded in the core SERVICE_CATALOG.
  */
 
 import { create } from 'zustand';
@@ -38,17 +39,18 @@ import { matchIntent } from '../services/intentFallback';
 export type ChatRole = 'user' | 'assistant';
 
 /**
- * A tappable "go deeper" link surfaced as its own button-styled message. A
- * handler emits this (via a `link` field on its response) when it can point the
- * user at the exact place in-app for more on their query; the store renders it
- * as a chip and navigates (navigateToService) only when the user taps it.
+ * A tappable "go there" button surfaced under a reply. A handler opts in by
+ * returning either a `link: { label, serviceId, params?, icon? }` (route_to_service,
+ * query_budget) or an inline navigable destination (`available` + `serviceId`
+ * (+ `service`/`params`), e.g. get_permit_path). The store renders it as a chip
+ * and navigates (navigateToService) only when the user taps it.
  */
 export interface ChatAction {
   /** Button label, e.g. "View the 2026 budget breakdown". */
   label: string;
   /** A SERVICE_CATALOG serviceId the tap navigates to (via navigateToService). */
   serviceId: string;
-  /** Optional route params, e.g. { section: "annual-budget" }. */
+  /** Optional route params, e.g. { section: "annual-budget" } or { profile }. */
   params?: Record<string, string>;
   /** Optional leading icon for the chip. */
   icon?: IconName;
@@ -64,6 +66,8 @@ export interface ChatMessage {
   voice?: boolean;
   /** True while the spoken clip is still being transcribed. */
   transcribing?: boolean;
+  /** Tappable clarification choices — tapping one sends it as a user message. */
+  options?: string[];
   /** When set, this message renders as a tappable deep-link button. */
   action?: ChatAction;
 }
@@ -80,10 +84,14 @@ interface GiyaChatState {
 }
 
 /**
- * Pull a deep-link action out of this turn's function responses. A handler
- * opts in by returning a `link: { label, serviceId, params?, icon? }`; we only
- * surface a button when those required fields are present (so it appears only
- * where the handler deemed it reasonable — e.g. a real budget answer).
+ * Pull a tappable destination out of this turn's function responses. Supports
+ * two handler shapes:
+ *   - an explicit `link: { label, serviceId, params?, icon? }` (route_to_service,
+ *     query_budget) — preferred, carries a nice label + icon;
+ *   - an inline destination (`available` + `serviceId`, optional `service`/`params`),
+ *     e.g. get_permit_path returning the permit screen seeded with the profile.
+ * Only surfaces a button when a serviceId is present, so it appears only where a
+ * handler deemed it reasonable.
  */
 function actionFromResponses(
   responses: { name: string; response: Record<string, unknown> }[],
@@ -98,6 +106,13 @@ function actionFromResponses(
         icon: link.icon,
       };
     }
+    if (response.available && typeof response.serviceId === 'string' && response.serviceId) {
+      return {
+        label: String(response.service ?? 'Open'),
+        serviceId: response.serviceId,
+        params: response.params as Record<string, string> | undefined,
+      };
+    }
   }
   return null;
 }
@@ -109,7 +124,9 @@ const FALLBACK = {
   comingSoon: (service: string) =>
     `Pasensya, wala pa andam ang ${service} — hapit na ni! · ${service} isn't ready yet — coming soon!`,
   clarify:
-    'Aron matabangan tika, unsa gyud imong kinahanglan? Pananglitan: business permit, hotlines, o budget. · Tell me a bit more — e.g. business permit, hotlines, or budget.',
+    'Aron matabangan tika, unsa gyud imong kinahanglan? · Tell me a bit more about what you need.',
+  tapToOpen: (service: string) =>
+    `I-tap ang button sa ubos para ablihan ang ${service}. · Tap the button below to open ${service}.`,
   voiceOffline:
     "Kinahanglan ko og koneksyon para madungog ang voice. Palihug i-type lang sa karon. · I need a connection to understand voice — please type for now.",
   voiceUnclear:
@@ -119,6 +136,9 @@ const FALLBACK = {
   error:
     'Naa koy nasugatan nga problema. Palihug sulayi pag-usab. · Something went wrong — please try again.',
 };
+
+/** Offline clarify chips — labels chosen so matchIntent resolves them when tapped. */
+const FALLBACK_OPTIONS = ['Business permit', 'City budget', 'Emergency hotlines'];
 
 let idCounter = 0;
 function nextId(): string {
@@ -138,11 +158,17 @@ function toContents(messages: ChatMessage[]): GeminiContent[] {
 
 export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
   /** Replace the trailing pending assistant bubble with a final reply. */
-  function resolveAssistant(pendingId: string, text: string) {
+  function resolveAssistant(
+    pendingId: string,
+    text: string,
+    extra?: { options?: string[] },
+  ) {
     set((s) => ({
       status: 'idle',
       messages: s.messages.map((m) =>
-        m.id === pendingId ? { ...m, text, pending: false } : m,
+        m.id === pendingId
+          ? { ...m, text, pending: false, options: extra?.options }
+          : m,
       ),
     }));
   }
@@ -171,7 +197,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }));
   }
 
-  /** Gemini path: tool call → dispatch → confirmation, with fallback on error. */
+  /** Gemini path: loop tool rounds → clarify chips OR a tap-to-open button. */
   async function runGemini(
     contents: GeminiContent[],
     pendingId: string,
@@ -179,11 +205,26 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     voice: boolean,
   ) {
     try {
-      let turn = await generateContent(contents);
       const working = [...contents];
       let pendingAction: ChatAction | null = null;
+      let turn = await generateContent(working);
 
-      if (turn.functionCalls.length > 0) {
+      // The model may take several tool rounds before it replies with text
+      // (e.g. ask one field per turn, then get_permit_path, then a route link).
+      // Loop until it stops calling functions; the round cap guards runaways.
+      for (let round = 0; turn.functionCalls.length > 0 && round < 6; round += 1) {
+        // Unsure → the model asks with tappable options. Render the question +
+        // chips as the final bubble and stop the turn here.
+        const clarify = turn.functionCalls.find((fc) => fc.name === 'ask_clarification');
+        if (clarify) {
+          const question = String(clarify.args.question ?? '') || FALLBACK.clarify;
+          const options = Array.isArray(clarify.args.options)
+            ? clarify.args.options.map((o) => String(o)).filter((o) => o.length > 0)
+            : [];
+          resolveAssistant(pendingId, question, { options });
+          return;
+        }
+
         working.push(turn.raw);
         const responses = await Promise.all(
           turn.functionCalls.map(async (fc) => {
@@ -199,8 +240,9 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
             return { name: fc.name, response };
           }),
         );
-        // A handler may attach a deep-link the user can tap for more detail.
-        pendingAction = actionFromResponses(responses);
+        // A handler may surface a tappable destination for the reply.
+        const found = actionFromResponses(responses);
+        if (found) pendingAction = found;
         working.push({
           role: 'user',
           parts: responses.map((r) => ({ functionResponse: r })),
@@ -208,7 +250,12 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
         turn = await generateContent(working);
       }
 
-      resolveAssistant(pendingId, turn.text || FALLBACK.clarify);
+      // If the model ended with no text but we captured a destination, prefer a
+      // "tap the button" line over the opener clarify prompt.
+      const text =
+        turn.text ||
+        (pendingAction ? FALLBACK.tapToOpen(pendingAction.label) : FALLBACK.clarify);
+      resolveAssistant(pendingId, text);
       if (pendingAction) appendAction(pendingAction);
     } catch (err) {
       if (__DEV__ && err instanceof GeminiError) {
@@ -218,7 +265,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }
   }
 
-  /** Offline / no-key / error path: keyword match → dispatch → canned line. */
+  /** Offline / no-key / error path: keyword match → link button, else clarify chips. */
   async function runFallback(pendingId: string, userText: string, voice: boolean) {
     // Voice carries no text we can keyword-match offline.
     if (voice && !userText) {
@@ -227,7 +274,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }
     const serviceId = userText ? matchIntent(userText) : null;
     if (!serviceId) {
-      resolveAssistant(pendingId, FALLBACK.clarify);
+      resolveAssistant(pendingId, FALLBACK.clarify, { options: FALLBACK_OPTIONS });
       return;
     }
     try {

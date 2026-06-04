@@ -1,121 +1,107 @@
 /**
- * permitPath — the pure, grounded filter that turns a (possibly partial)
- * business profile into the visible Cebu City permit roadmap.
- *
- * No I/O, no fabrication: it only ever returns steps that exist in
- * permit_steps.json, decided solely by each step's `condition` matcher. This is
- * what keeps Giya honest — the JSON drives the list, not the model.
+ * permitPath — pure functions over the permit steps. The single source of
+ * truth shared by the screen and the get_permit_path handler, so the in-chat
+ * path and the on-screen roadmap can never disagree.
  */
-
-import type {
-  PermitCondition,
-  PermitData,
-  PermitProfile,
-  PermitStep,
-} from '@/core/models';
+import type { PermitProfile, PermitStep } from '@/core/models/permit';
+import { permitSteps } from '../data';
 
 /**
- * How a single step's condition relates to the profile we have so far:
- * - always:   condition is null — shown to everyone (the backbone).
- * - match:    every condition field is present in the profile and equal.
- * - no-match: a condition field is present but disagrees — hide it.
- * - pending:  a condition field hasn't been provided yet — can't decide.
+ * Steps visible for a profile: included when the step has no condition, or when
+ * every key in its condition matches the profile. Sorted ascending by `order`.
  */
-export type Verdict = 'always' | 'match' | 'no-match' | 'pending';
+export function filterSteps(profile: PermitProfile): PermitStep[] {
+  return permitSteps
+    .filter((step) => matchesProfile(step, profile))
+    .sort((a, b) => a.order - b.order);
+}
 
-export function evaluate(
-  condition: PermitCondition | null,
-  profile: Partial<PermitProfile>,
-): Verdict {
-  if (condition === null) return 'always';
+function matchesProfile(step: PermitStep, profile: PermitProfile): boolean {
+  if (step.condition === null) {
+    return true;
+  }
+  const profileRecord = profile as unknown as Record<string, string | undefined>;
+  return Object.entries(step.condition).every(
+    ([key, value]) => profileRecord[key] === value,
+  );
+}
 
-  const lookup = profile as Record<string, string | undefined>;
-  let pending = false;
+/**
+ * A step is a tagged "add-on" when its inclusion is driven by the business type
+ * (food, bar) rather than the legal structure. The DTI/SEC/CDA prerequisite is
+ * legal-structure-conditioned and stays part of the backbone (not tagged).
+ */
+export function isAddOn(step: PermitStep): boolean {
+  if (step.condition === null) {
+    return false;
+  }
+  return Object.keys(step.condition).some((key) => key !== 'legalStructure');
+}
 
-  for (const [key, expected] of Object.entries(condition)) {
-    const provided = lookup[key];
-    if (provided === undefined) {
-      pending = true;
+/** Human reason a tagged add-on appears, derived from the matched condition. */
+export function addOnReason(step: PermitStep): string | null {
+  if (!isAddOn(step) || step.condition === null) {
+    return null;
+  }
+  const businessType = step.condition.businessType;
+  if (businessType === 'food') {
+    return 'Because you chose a food business';
+  }
+  if (businessType === 'bar') {
+    return 'Because you chose a bar / videoke';
+  }
+  return businessType ? `Because you chose ${businessType}` : null;
+}
+
+/**
+ * Parse a fee string into a peso range. Handles "₱200–₱2,000", "₱100 per
+ * employee", and "None"; returns null for non-numeric fees like "Varies by
+ * capitalization" or "Based on BPLO assessment".
+ */
+export function parseFee(fee: string): { min: number; max: number } | null {
+  if (fee.toLowerCase().includes('none')) {
+    return { min: 0, max: 0 };
+  }
+  const numbers = fee.replace(/,/g, '').match(/\d+(\.\d+)?/g);
+  if (!numbers || numbers.length === 0) {
+    return null;
+  }
+  const values = numbers.map(Number);
+  return { min: Math.min(...values), max: Math.max(...values) };
+}
+
+export interface PermitTotals {
+  /** Sum of the low end of every parseable fee, in pesos. */
+  feeMin: number;
+  /** Sum of the high end of every parseable fee, in pesos. */
+  feeMax: number;
+  /** True when at least one step's fee could not be parsed to a number. */
+  hasVariableFees: boolean;
+  /** Number of steps in the path. */
+  stepCount: number;
+}
+
+/** Aggregate the fee range across the visible steps for the roadmap header. */
+export function computeTotals(steps: PermitStep[]): PermitTotals {
+  let feeMin = 0;
+  let feeMax = 0;
+  let hasVariableFees = false;
+
+  for (const step of steps) {
+    const parsed = parseFee(step.fee);
+    if (!parsed) {
+      hasVariableFees = true;
       continue;
     }
-    if (provided !== expected) return 'no-match';
+    feeMin += parsed.min;
+    feeMax += parsed.max;
   }
 
-  return pending ? 'pending' : 'match';
+  return { feeMin, feeMax, hasVariableFees, stepCount: steps.length };
 }
 
-/** One step in the computed roadmap, with the reason it was included. */
-export interface PermitPathStep {
-  order: number;
-  id: string;
-  title: string;
-  office: string;
-  address: string;
-  requirements: string[];
-  fee: string;
-  processingTime: string;
-  notes: string;
-  /** null for backbone steps; the matched condition for conditional ones. */
-  appliesBecause: PermitCondition | null;
-}
-
-export interface PermitPathResult {
-  /** Backbone + matched conditional steps, sorted by order. */
-  steps: PermitPathStep[];
-  /**
-   * Distinct profile fields referenced by still-undecided conditional steps.
-   * Non-empty means Giya should ask for these before presenting a final list.
-   */
-  pendingProfileFields: string[];
-  /** Echo of the profile actually applied, for transparency. */
-  profileUsed: Partial<PermitProfile>;
-}
-
-function toPathStep(step: PermitStep, verdict: Verdict): PermitPathStep {
-  return {
-    order: step.order,
-    id: step.id,
-    title: step.title,
-    office: step.office,
-    address: step.address,
-    requirements: step.requirements,
-    fee: step.fee,
-    processingTime: step.processingTime,
-    notes: step.notes,
-    appliesBecause: verdict === 'match' ? step.condition : null,
-  };
-}
-
-/**
- * Compute the visible roadmap for a (partial) profile. Conditional steps whose
- * deciding field is still missing are NOT included, but their fields surface in
- * `pendingProfileFields` so Giya knows exactly what to ask next.
- */
-export function computePath(
-  data: PermitData,
-  profile: Partial<PermitProfile>,
-): PermitPathResult {
-  const steps: PermitPathStep[] = [];
-  const pending = new Set<string>();
-
-  for (const step of data.steps) {
-    const verdict = evaluate(step.condition, profile);
-    if (verdict === 'always' || verdict === 'match') {
-      steps.push(toPathStep(step, verdict));
-    } else if (verdict === 'pending' && step.condition) {
-      for (const key of Object.keys(step.condition)) {
-        if ((profile as Record<string, unknown>)[key] === undefined) {
-          pending.add(key);
-        }
-      }
-    }
-  }
-
-  steps.sort((a, b) => a.order - b.order);
-
-  return {
-    steps,
-    pendingProfileFields: Array.from(pending),
-    profileUsed: profile,
-  };
+/** Format the estimated total fee range for display (used by screen + handler). */
+export function formatEstimatedFees(totals: PermitTotals): string {
+  const range = `₱${totals.feeMin.toLocaleString()}–₱${totals.feeMax.toLocaleString()}`;
+  return totals.hasVariableFees ? `${range}+ (some fees vary)` : range;
 }

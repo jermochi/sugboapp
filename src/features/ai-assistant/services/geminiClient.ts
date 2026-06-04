@@ -149,13 +149,40 @@ export async function generateContent(
       contents,
       tools: buildTools(),
       generationConfig: {
+        // Low temperature + dynamic thinking make the tool-vs-text decision
+        // (e.g. "should I call ask_clarification?") consistent turn to turn.
+        // With thinking off (budget 0) the model skipped that deliberation and
+        // would intermittently ask questions as plain text instead of chips.
+        temperature: 0.1,
+        thinkingConfig: { thinkingBudget: -1 },
+      },
+    },
+    signal,
+  );
+}
+
+/**
+ * Generate a plain-text answer under a caller-supplied system instruction, with
+ * NO tools. Used by in-context helpers (e.g. the permit helper) that need a
+ * grounded explanation rather than routing. Throws GeminiError on failure.
+ */
+export async function generateGroundedText(
+  systemInstruction: string,
+  contents: GeminiContent[],
+  signal?: AbortSignal,
+): Promise<string> {
+  const turn = await postGenerateContent(
+    {
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents,
+      generationConfig: {
         temperature: 0.4,
-        // Thinking budget off (SDD): keep replies fast for a routing task.
         thinkingConfig: { thinkingBudget: 0 },
       },
     },
     signal,
   );
+  return turn.text;
 }
 
 /**
