@@ -8,7 +8,7 @@
  */
 
 import { Icon, type IconName } from '@/core/components';
-import { goBack, navigateTo, type RouteName } from '@/core/routing';
+import { goBack } from '@/core/routing';
 import { useConnectivityStore } from '@/core/services/connectivityService';
 import { BrandColors, Fonts } from '@/core/theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,7 +31,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { MessageList } from './components/MessageList';
 import { useVoiceCapture } from './hooks/useVoiceCapture';
-import { useGiyaChatStore, type RouteAction } from './store/giyaChatStore';
+import { useGiyaChatStore } from './store/giyaChatStore';
 
 const GIYA_HEAD = require('../../../assets/images/giya-head.png');
 
@@ -309,6 +309,7 @@ export default function GiyaChatScreen() {
   const messages = useGiyaChatStore((s) => s.messages);
   const status = useGiyaChatStore((s) => s.status);
   const sendText = useGiyaChatStore((s) => s.sendText);
+  const followAction = useGiyaChatStore((s) => s.followAction);
   const reset = useGiyaChatStore((s) => s.reset);
   const isOnline = useConnectivityStore((s) => s.isOnline);
   const voice = useVoiceCapture();
@@ -330,16 +331,6 @@ export default function GiyaChatScreen() {
   const handleMic = () => {
     if (isThinking || voice.isBusy) return;
     voice.toggle();
-  };
-
-  const handleRoute = (action: RouteAction) => {
-    // entry.route is a concrete RouteName; widen to sidestep the per-route param
-    // generic (navigateTo handles the expo-router cast).
-    const navigate = navigateTo as (
-      route: RouteName,
-      params?: Record<string, string>,
-    ) => void;
-    navigate(action.route, action.params);
   };
 
   const offlineNote = !isOnline ? (
@@ -399,8 +390,8 @@ export default function GiyaChatScreen() {
         {hasConversation ? (
           <MessageList
             messages={messages}
+            onAction={followAction}
             onChoose={(option) => void sendText(option)}
-            onRoute={handleRoute}
           />
         ) : (
           <View style={styles.hero}>

@@ -18,6 +18,14 @@ export interface AIFunctionHandler {
   readonly parameters: Record<string, unknown>;
 
   /**
+   * Optional domain instructions appended to Giya's system prompt when this
+   * handler is registered. Lets a feature ship its tools AND the guidance on
+   * how/when Giya should use them, so the AI module needs no per-domain edits.
+   * Omit it for plain routing/data handlers that need no special behavior.
+   */
+  readonly promptFragment?: string;
+
+  /**
    * Execute the function with the given args.
    * Must return only data sourced from bundled JSON — never invent.
    */

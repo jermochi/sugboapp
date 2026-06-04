@@ -9,7 +9,7 @@
  */
 
 import { aiFunctionRegistry } from '@/core/ai-contract';
-import { GEMINI_MODEL, GIYA_SYSTEM_PROMPT } from '../data/systemPrompt';
+import { GEMINI_MODEL, buildGiyaPrompt } from '../data/systemPrompt';
 import type { AudioPayload } from './audioRecorder';
 
 /** System instruction for the transcription-only pass (no tools, verbatim). */
@@ -145,7 +145,7 @@ export async function generateContent(
 ): Promise<GeminiTurn> {
   return postGenerateContent(
     {
-      systemInstruction: { parts: [{ text: GIYA_SYSTEM_PROMPT }] },
+      systemInstruction: { parts: [{ text: buildGiyaPrompt() }] },
       contents,
       tools: buildTools(),
       generationConfig: {

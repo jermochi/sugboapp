@@ -25,6 +25,8 @@ export interface RouteParams {
   '/transparency': {
     sectorId?: string;
     barangay?: string;
+    /** TransparencyCategory id to open on mount, e.g. "annual-budget". */
+    section?: string;
   };
   '/permit': {
     /** JSON-encoded PermitProfile */
