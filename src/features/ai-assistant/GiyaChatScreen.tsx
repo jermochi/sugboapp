@@ -388,7 +388,11 @@ export default function GiyaChatScreen() {
         </View>
 
         {hasConversation ? (
-          <MessageList messages={messages} onAction={followAction} />
+          <MessageList
+            messages={messages}
+            onAction={followAction}
+            onChoose={(option) => void sendText(option)}
+          />
         ) : (
           <View style={styles.hero}>
             <GiyaPortrait />

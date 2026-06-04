@@ -1,7 +1,9 @@
 /**
  * MessageBubble — one chat row. User messages sit right on a gold gradient;
  * Giya's replies sit left on a translucent surface. A pending Giya bubble shows
- * the typing indicator instead of text.
+ * the typing indicator. A Giya reply may carry tappable clarification chips
+ * (options); a standalone deep-link message renders as a gold button (action).
+ * In both cases the user taps to act — Giya never auto-redirects.
  */
 
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,9 +19,11 @@ import { TypingIndicator } from './TypingIndicator';
 export function MessageBubble({
   message,
   onAction,
+  onChoose,
 }: {
   message: ChatMessage;
   onAction?: (action: ChatAction) => void;
+  onChoose?: (option: string) => void;
 }) {
   const isUser = message.role === 'user';
 
@@ -47,14 +51,38 @@ export function MessageBubble({
     );
   }
 
+  const options = message.options ?? [];
+
   return (
     <View style={[styles.row, styles.rowGiya]}>
-      <View style={[styles.bubble, styles.bubbleGiya]}>
-        {message.pending ? (
-          <TypingIndicator />
-        ) : (
-          <Text style={[styles.text, styles.textGiya]}>{message.text}</Text>
-        )}
+      <View style={styles.giyaColumn}>
+        <View style={[styles.bubble, styles.bubbleGiya]}>
+          {message.pending ? (
+            <TypingIndicator />
+          ) : (
+            <Text style={[styles.text, styles.textGiya]}>{message.text}</Text>
+          )}
+        </View>
+
+        {options.length > 0 ? (
+          <View style={styles.options}>
+            <Text style={styles.optionsHint}>TAP TO CHOOSE</Text>
+            <View style={styles.optionRow}>
+              {options.map((option) => (
+                <Pressable
+                  key={option}
+                  onPress={() => onChoose?.(option)}
+                  accessibilityRole="button"
+                  accessibilityLabel={option}
+                  style={({ pressed }) => [styles.choiceChip, pressed && styles.choiceChipPressed]}
+                >
+                  <Text style={styles.choiceText}>{option}</Text>
+                  <Text style={styles.choiceChevron}>›</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -108,16 +136,22 @@ const styles = StyleSheet.create({
   rowGiya: {
     justifyContent: 'flex-start',
   },
+  giyaColumn: {
+    maxWidth: '86%',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
   bubble: {
-    maxWidth: '82%',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 18,
   },
   bubbleUser: {
+    maxWidth: '82%',
     borderBottomRightRadius: 6,
   },
   bubbleGiya: {
+    alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(255,236,196,0.24)',
@@ -133,6 +167,49 @@ const styles = StyleSheet.create({
   },
   textGiya: {
     color: '#FFF3E0',
+  },
+  options: {
+    width: '100%',
+    gap: 6,
+  },
+  optionsHint: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    color: 'rgba(255,221,150,0.72)',
+    marginLeft: 4,
+  },
+  optionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  choiceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    backgroundColor: 'rgba(255,221,150,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,221,150,0.55)',
+  },
+  choiceChipPressed: {
+    opacity: 0.78,
+    backgroundColor: 'rgba(255,221,150,0.22)',
+  },
+  choiceText: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: 13.5,
+    color: '#FFE7B8',
+  },
+  choiceChevron: {
+    fontFamily: Fonts.bodyBold,
+    fontSize: 16,
+    lineHeight: 16,
+    color: 'rgba(255,221,150,0.85)',
+    marginTop: -1,
   },
   actionWrap: {
     maxWidth: '82%',
