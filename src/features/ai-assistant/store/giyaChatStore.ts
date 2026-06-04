@@ -14,14 +14,16 @@
  *      user's own language.
  *   3. If Gemini is unavailable or errors, fall back to keyword routing.
  *
- * Navigation only ever happens via the route_to_service handler, grounded in
- * the core SERVICE_CATALOG — the store never invents a destination.
+ * Routing is grounded in the core SERVICE_CATALOG: route_to_service resolves a
+ * destination, the store attaches it to the reply as a tappable button, and
+ * navigation happens only when the user taps it — never automatically.
  */
 
 import { create } from 'zustand';
 
 import { aiFunctionRegistry } from '@/core/ai-contract';
 import { connectivityService } from '@/core/services/connectivityService';
+import type { RouteName } from '@/core/routing';
 
 import type { AudioPayload } from '../services/audioRecorder';
 import {
@@ -35,6 +37,16 @@ import { matchIntent } from '../services/intentFallback';
 
 export type ChatRole = 'user' | 'assistant';
 
+/** A navigable destination surfaced as a tappable button under a reply. */
+export interface RouteAction {
+  serviceId: string;
+  /** Human label for the button text. */
+  label: string;
+  /** Concrete, navigable route (only set when the service is available). */
+  route: RouteName;
+  params?: Record<string, string>;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -45,6 +57,10 @@ export interface ChatMessage {
   voice?: boolean;
   /** True while the spoken clip is still being transcribed. */
   transcribing?: boolean;
+  /** Tappable clarification choices — tapping one sends it as a user message. */
+  options?: string[];
+  /** A destination the user can open by tapping a button under the reply. */
+  routeAction?: RouteAction;
 }
 
 export type ChatStatus = 'idle' | 'thinking';
@@ -65,6 +81,8 @@ const FALLBACK = {
     `Pasensya, wala pa andam ang ${service} — hapit na ni! · ${service} isn't ready yet — coming soon!`,
   clarify:
     'Aron matabangan tika, unsa gyud imong kinahanglan? Pananglitan: business permit, hotlines, o budget. · Tell me a bit more — e.g. business permit, hotlines, or budget.',
+  tapToOpen: (service: string) =>
+    `I-tap ang button sa ubos para ablihan ang ${service}. · Tap the button below to open ${service}.`,
   voiceOffline:
     "Kinahanglan ko og koneksyon para madungog ang voice. Palihug i-type lang sa karon. · I need a connection to understand voice — please type for now.",
   voiceUnclear:
@@ -74,6 +92,9 @@ const FALLBACK = {
   error:
     'Naa koy nasugatan nga problema. Palihug sulayi pag-usab. · Something went wrong — please try again.',
 };
+
+/** Offline clarify chips — labels chosen so matchIntent resolves them when tapped. */
+const FALLBACK_OPTIONS = ['Business permit', 'City budget', 'Emergency hotlines'];
 
 let idCounter = 0;
 function nextId(): string {
@@ -93,11 +114,23 @@ function toContents(messages: ChatMessage[]): GeminiContent[] {
 
 export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
   /** Replace the trailing pending assistant bubble with a final reply. */
-  function resolveAssistant(pendingId: string, text: string) {
+  function resolveAssistant(
+    pendingId: string,
+    text: string,
+    extra?: { options?: string[]; routeAction?: RouteAction },
+  ) {
     set((s) => ({
       status: 'idle',
       messages: s.messages.map((m) =>
-        m.id === pendingId ? { ...m, text, pending: false } : m,
+        m.id === pendingId
+          ? {
+              ...m,
+              text,
+              pending: false,
+              options: extra?.options,
+              routeAction: extra?.routeAction,
+            }
+          : m,
       ),
     }));
   }
@@ -119,7 +152,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }));
   }
 
-  /** Gemini path: tool call → dispatch → confirmation, with fallback on error. */
+  /** Gemini path: clarify-with-chips OR tool dispatch → route button, with fallback on error. */
   async function runGemini(
     contents: GeminiContent[],
     pendingId: string,
@@ -128,7 +161,21 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
   ) {
     try {
       let turn = await generateContent(contents);
+
+      // Unsure → the model asks a question with tappable options. Render the
+      // question + chips as the final bubble; no dispatch, no follow-up turn.
+      const clarify = turn.functionCalls.find((fc) => fc.name === 'ask_clarification');
+      if (clarify) {
+        const question = String(clarify.args.question ?? '') || FALLBACK.clarify;
+        const options = Array.isArray(clarify.args.options)
+          ? clarify.args.options.map((o) => String(o)).filter((o) => o.length > 0)
+          : [];
+        resolveAssistant(pendingId, question, { options });
+        return;
+      }
+
       const working = [...contents];
+      let routeAction: RouteAction | undefined;
 
       if (turn.functionCalls.length > 0) {
         working.push(turn.raw);
@@ -143,6 +190,15 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
                 error: err instanceof Error ? err.message : 'dispatch failed',
               };
             }
+            // Capture a resolved destination so the reply can offer a button.
+            if (fc.name === 'route_to_service' && response.available && response.route) {
+              routeAction = {
+                serviceId: String(response.serviceId ?? ''),
+                label: String(response.service ?? ''),
+                route: response.route as RouteName,
+                params: fc.args.params as Record<string, string> | undefined,
+              };
+            }
             return { name: fc.name, response };
           }),
         );
@@ -153,7 +209,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
         turn = await generateContent(working);
       }
 
-      resolveAssistant(pendingId, turn.text || FALLBACK.clarify);
+      resolveAssistant(pendingId, turn.text || FALLBACK.clarify, { routeAction });
     } catch (err) {
       if (__DEV__ && err instanceof GeminiError) {
         console.warn('[Giya] Gemini turn failed:', err.message);
@@ -162,7 +218,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }
   }
 
-  /** Offline / no-key / error path: keyword match → dispatch → canned line. */
+  /** Offline / no-key / error path: keyword match → route button, else clarify chips. */
   async function runFallback(pendingId: string, userText: string, voice: boolean) {
     // Voice carries no text we can keyword-match offline.
     if (voice && !userText) {
@@ -171,7 +227,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }
     const serviceId = userText ? matchIntent(userText) : null;
     if (!serviceId) {
-      resolveAssistant(pendingId, FALLBACK.clarify);
+      resolveAssistant(pendingId, FALLBACK.clarify, { options: FALLBACK_OPTIONS });
       return;
     }
     try {
@@ -179,12 +235,17 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
         serviceId,
       });
       const service = String(result.service ?? serviceId);
-      resolveAssistant(
-        pendingId,
-        result.available
-          ? FALLBACK.navigated(service)
-          : FALLBACK.comingSoon(service),
-      );
+      if (result.available && result.route) {
+        resolveAssistant(pendingId, FALLBACK.tapToOpen(service), {
+          routeAction: {
+            serviceId,
+            label: service,
+            route: result.route as RouteName,
+          },
+        });
+      } else {
+        resolveAssistant(pendingId, FALLBACK.comingSoon(service));
+      }
     } catch {
       resolveAssistant(pendingId, FALLBACK.error);
     }
