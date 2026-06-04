@@ -35,6 +35,7 @@ export type IconName =
   | 'home'
   | 'services'
   | 'news'
+  | 'emergency'
   | 'account';
 
 interface IconProps {
@@ -159,6 +160,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <Rect x={4} y={4} width={16} height={16} rx={2} />
       <Path d="M8 9h8M8 13h8M8 17h5" strokeWidth={1.4} />
+    </>
+  ),
+  emergency: (
+    <>
+      <Path d="M12 4l9 16H3z" />
+      <Path d="M12 9v5" strokeWidth={1.7} />
+      <Path d="M12 17.5v.01" strokeWidth={2.2} />
     </>
   ),
   account: (

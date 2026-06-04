@@ -78,7 +78,12 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="emergency"
-          options={{ headerShown: true, title: 'Emergency Services' }}
+          options={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+            statusBarBackgroundColor: '#FFFFFF',
+            statusBarStyle: 'dark',
+          }}
         />
       </Stack>
     </ThemeProvider>
