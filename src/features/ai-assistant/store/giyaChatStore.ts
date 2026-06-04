@@ -83,6 +83,7 @@ const FALLBACK = {
     'Aron matabangan tika, unsa gyud imong kinahanglan? Pananglitan: business permit, hotlines, o budget. · Tell me a bit more — e.g. business permit, hotlines, or budget.',
   tapToOpen: (service: string) =>
     `I-tap ang button sa ubos para ablihan ang ${service}. · Tap the button below to open ${service}.`,
+  ack: 'Naa pa koy ikatabang? · Anything else I can help with?',
   voiceOffline:
     "Kinahanglan ko og koneksyon para madungog ang voice. Palihug i-type lang sa karon. · I need a connection to understand voice — please type for now.",
   voiceUnclear:
@@ -152,7 +153,7 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     }));
   }
 
-  /** Gemini path: clarify-with-chips OR tool dispatch → route button, with fallback on error. */
+  /** Gemini path: loop tool rounds → clarify chips OR route button, fallback on error. */
   async function runGemini(
     contents: GeminiContent[],
     pendingId: string,
@@ -160,24 +161,27 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     voice: boolean,
   ) {
     try {
-      let turn = await generateContent(contents);
-
-      // Unsure → the model asks a question with tappable options. Render the
-      // question + chips as the final bubble; no dispatch, no follow-up turn.
-      const clarify = turn.functionCalls.find((fc) => fc.name === 'ask_clarification');
-      if (clarify) {
-        const question = String(clarify.args.question ?? '') || FALLBACK.clarify;
-        const options = Array.isArray(clarify.args.options)
-          ? clarify.args.options.map((o) => String(o)).filter((o) => o.length > 0)
-          : [];
-        resolveAssistant(pendingId, question, { options });
-        return;
-      }
-
       const working = [...contents];
       let routeAction: RouteAction | undefined;
+      let turn = await generateContent(working);
 
-      if (turn.functionCalls.length > 0) {
+      // The model may take several tool rounds before it replies with text
+      // (e.g. get_permit_path for the roadmap, then route_to_service for the
+      // button). Loop until it stops calling functions, capturing any
+      // destination along the way; the round cap guards against runaway loops.
+      for (let round = 0; turn.functionCalls.length > 0 && round < 6; round += 1) {
+        // Unsure → the model asks a question with tappable options. Render the
+        // question + chips as the final bubble and stop the turn here.
+        const clarify = turn.functionCalls.find((fc) => fc.name === 'ask_clarification');
+        if (clarify) {
+          const question = String(clarify.args.question ?? '') || FALLBACK.clarify;
+          const options = Array.isArray(clarify.args.options)
+            ? clarify.args.options.map((o) => String(o)).filter((o) => o.length > 0)
+            : [];
+          resolveAssistant(pendingId, question, { options });
+          return;
+        }
+
         working.push(turn.raw);
         const responses = await Promise.all(
           turn.functionCalls.map(async (fc) => {
@@ -209,7 +213,12 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
         turn = await generateContent(working);
       }
 
-      resolveAssistant(pendingId, turn.text || FALLBACK.clarify, { routeAction });
+      // If the model ended a tool round with no text, prefer a "tap the button"
+      // line when we captured a destination — never the opener clarify prompt,
+      // which reads oddly after a real exchange.
+      const text =
+        turn.text || (routeAction ? FALLBACK.tapToOpen(routeAction.label) : FALLBACK.ack);
+      resolveAssistant(pendingId, text, { routeAction });
     } catch (err) {
       if (__DEV__ && err instanceof GeminiError) {
         console.warn('[Giya] Gemini turn failed:', err.message);

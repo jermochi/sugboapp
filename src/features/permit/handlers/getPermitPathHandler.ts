@@ -44,8 +44,14 @@ export const getPermitPathHandler: AIFunctionHandler = {
   name: 'get_permit_path',
   description:
     'Return the ordered list of business-permit steps for a given business ' +
-    'profile (application type, business type, legal structure). Use this to ' +
-    'tell the user which steps their specific business needs.',
+    'profile. REQUIRES application, businessType, and legalStructure — do NOT ' +
+    'call this until you already know all three. To collect any missing field, ' +
+    'do NOT ask for it in plain text: call ask_clarification with that field’s ' +
+    'choices as tappable options (translate the labels to the user’s language). ' +
+    'Choices — application: ["New business", "Renewal"]; businessType: ' +
+    '["Sari-sari store", "Food / Carinderia / Restaurant", "Services", ' +
+    '"Bar / Videoke", "Other"]; legalStructure: ["Sole proprietor", ' +
+    '"Corporation / Partnership", "Cooperative"]. Ask one field per turn.',
   parameters: {
     type: 'object',
     properties: {
