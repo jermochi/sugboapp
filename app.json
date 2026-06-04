@@ -45,7 +45,8 @@
         {
           "microphonePermission": "Allow Giya to use your microphone so you can ask by voice."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
