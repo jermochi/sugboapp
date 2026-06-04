@@ -1,17 +1,17 @@
 /**
- * route_to_service — the navigation handler owned by core/routing.
+ * route_to_service — the routing handler owned by core/routing.
  *
  * The AI dispatches this when it has identified which service the user needs.
- * The handler performs the navigation side-effect and reports back whether the
- * target exists, so the assistant can confirm in words (or say "coming soon"
- * instead of fabricating a destination).
+ * The handler does NOT navigate — it resolves the destination and reports it
+ * back so the chat can render a button the user taps to open it (no
+ * auto-redirect). It also reports "coming soon" for services not yet built.
  *
  * GROUNDING RULE: this never invents routes — only the serviceIds in
  * SERVICE_CATALOG below are navigable; everything else returns available:false.
  */
 
 import type { AIFunctionHandler } from '../types';
-import { navigateTo, Routes, type RouteName } from '@/core/routing';
+import { Routes, type RouteName } from '@/core/routing';
 
 /**
  * The services the AI is allowed to route to, keyed by the stable `serviceId`
@@ -85,21 +85,12 @@ export const routeToServiceHandler: AIFunctionHandler = {
       };
     }
 
-    const params = (args.params ?? undefined) as
-      | Record<string, string>
-      | undefined;
-    // entry.route is a concrete RouteName; widen the call to sidestep the
-    // per-route param generic (navigateTo handles the expo-router cast).
-    const navigate = navigateTo as (
-      route: RouteName,
-      params?: Record<string, string>,
-    ) => void;
-    navigate(entry.route, params);
-
+    // No navigation here — the chat surfaces a button and navigates on tap.
     return {
-      status: 'navigated',
+      status: 'route_ready',
       serviceId,
       service: entry.label,
+      route: entry.route,
       available: true,
     };
   },
