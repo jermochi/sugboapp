@@ -77,7 +77,12 @@ export default function RootLayout() {
         />
         <Stack.Screen
           name="permit"
-          options={{ headerShown: true, title: 'Business Permit' }}
+          options={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#FFFFFF' },
+            statusBarBackgroundColor: '#FFFFFF',
+            statusBarStyle: 'dark',
+          }}
         />
         <Stack.Screen
           name="emergency"
