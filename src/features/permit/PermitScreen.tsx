@@ -64,6 +64,17 @@ export default function PermitScreen() {
     [profile],
   );
   const detailStep = steps.find((step) => step.id === detailStepId) ?? null;
+  const detailIndex = steps.findIndex((step) => step.id === detailStepId);
+  const isLastStep = detailIndex >= 0 && detailIndex === steps.length - 1;
+
+  const handleProceed = () => {
+    if (detailIndex < 0) return;
+    if (isLastStep) {
+      setDetailStepId(null); // back to the roadmap overview
+    } else {
+      setDetailStepId(steps[detailIndex + 1].id);
+    }
+  };
 
   const handleStartOver = () => {
     setDetailStepId(null);
@@ -139,7 +150,8 @@ export default function PermitScreen() {
               done={doneSteps.includes(detailStep.id)}
               onToggleRequirement={(index) => toggleRequirement(detailStep.id, index)}
               onToggleDone={() => toggleStepDone(detailStep.id)}
-              onAskHelper={() => setHelperVisible(true)}
+              onProceed={handleProceed}
+              isLastStep={isLastStep}
             />
           ) : (
             <RoadmapOverview
@@ -154,7 +166,14 @@ export default function PermitScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      {showHelper ? <AIHelperButton context="permit" onPress={() => setHelperVisible(true)} /> : null}
+      {showHelper ? (
+        <AIHelperButton
+          key={detailStepId ?? 'roadmap'}
+          context="permit"
+          hint="Ask Giya about this step"
+          onPress={() => setHelperVisible(true)}
+        />
+      ) : null}
       {showHelper && profile ? (
         <PermitHelperSheet
           visible={helperVisible}
