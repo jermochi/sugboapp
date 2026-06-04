@@ -8,7 +8,7 @@
  */
 
 import { Icon, type IconName } from '@/core/components';
-import { goBack } from '@/core/routing';
+import { goBack, navigateTo, type RouteName } from '@/core/routing';
 import { useConnectivityStore } from '@/core/services/connectivityService';
 import { BrandColors, Fonts } from '@/core/theme';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,7 +31,7 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { MessageList } from './components/MessageList';
 import { useVoiceCapture } from './hooks/useVoiceCapture';
-import { useGiyaChatStore } from './store/giyaChatStore';
+import { useGiyaChatStore, type RouteAction } from './store/giyaChatStore';
 
 const GIYA_HEAD = require('../../../assets/images/giya-head.png');
 
@@ -332,6 +332,16 @@ export default function GiyaChatScreen() {
     voice.toggle();
   };
 
+  const handleRoute = (action: RouteAction) => {
+    // entry.route is a concrete RouteName; widen to sidestep the per-route param
+    // generic (navigateTo handles the expo-router cast).
+    const navigate = navigateTo as (
+      route: RouteName,
+      params?: Record<string, string>,
+    ) => void;
+    navigate(action.route, action.params);
+  };
+
   const offlineNote = !isOnline ? (
     <Text style={styles.offlineNote}>{'Offline · basic routing only'}</Text>
   ) : null;
@@ -387,7 +397,11 @@ export default function GiyaChatScreen() {
         </View>
 
         {hasConversation ? (
-          <MessageList messages={messages} />
+          <MessageList
+            messages={messages}
+            onChoose={(option) => void sendText(option)}
+            onRoute={handleRoute}
+          />
         ) : (
           <View style={styles.hero}>
             <GiyaPortrait />
