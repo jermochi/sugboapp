@@ -5,6 +5,7 @@
 export interface Contact {
   name: string;
   number: string;
+  label?: string;
 }
 
 export interface HotlineCategory {
@@ -14,5 +15,6 @@ export interface HotlineCategory {
 }
 
 export interface HotlineData {
+  primary?: Contact;
   categories: HotlineCategory[];
 }

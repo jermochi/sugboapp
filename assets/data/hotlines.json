@@ -1,56 +1,72 @@
 {
+  "primary": {
+    "name": "For Emergencies",
+    "number": "911",
+    "label": "Police"
+  },
   "categories": [
     {
-      "id": "emergency",
-      "name": "Emergency",
+      "id": "cdrmmo",
+      "name": "CDRMMO",
       "contacts": [
-        { "name": "National Emergency Hotline", "number": "911" },
-        { "name": "Cebu City Emergency (CDRRMO)", "number": "032-2536060" },
-        { "name": "Red Cross Cebu Chapter", "number": "032-2530287" }
+        {
+          "name": "CDRMMO",
+          "number": "0932 537 7770",
+          "label": "Smart"
+        },
+        {
+          "name": "CDRMMO",
+          "number": "0917 839 9896",
+          "label": "Globe"
+        },
+        {
+          "name": "CDRMMO",
+          "number": "(032) 266-6317",
+          "label": "Telephone"
+        }
       ]
     },
     {
       "id": "medical",
       "name": "Medical / Hospital",
       "contacts": [
-        { "name": "Cebu City Medical Center", "number": "032-2558774" },
-        { "name": "Vicente Sotto Memorial Medical Center", "number": "032-2537804" },
-        { "name": "Chong Hua Hospital", "number": "032-2336511" },
-        { "name": "Cebu Doctors University Hospital", "number": "032-2536871" }
+        {
+          "name": "Cebu City Medical Center",
+          "number": "(032) 254 0517"
+        },
+        {
+          "name": "Vicente Sotto Memorial Medical Center",
+          "number": "(032) 253-9891"
+        },
+        {
+          "name": "Vicente Sotto Memorial Medical Center",
+          "number": "0920 970 7617",
+          "label": "Smart"
+        },
+        {
+          "name": "Chong Hua Hospital",
+          "number": "(032) 253-1546"
+        },
+        {
+          "name": "Cebu Doctors University Hospital",
+          "number": "(032) 255-5555"
+        }
       ]
     },
     {
       "id": "fire",
       "name": "Fire Department",
       "contacts": [
-        { "name": "Bureau of Fire Protection – Cebu City", "number": "032-2542727" },
-        { "name": "Fire Emergency Hotline", "number": "160" }
-      ]
-    },
-    {
-      "id": "police",
-      "name": "Police",
-      "contacts": [
-        { "name": "Cebu City Police Office (CCPO)", "number": "032-2564394" },
-        { "name": "PNP Hotline", "number": "117" },
-        { "name": "CIDG Region VII", "number": "032-2315847" }
-      ]
-    },
-    {
-      "id": "utilities",
-      "name": "Utilities",
-      "contacts": [
-        { "name": "VECO (Visayan Electric)", "number": "032-2320888" },
-        { "name": "MCWD (Metro Cebu Water District)", "number": "032-2543030" }
-      ]
-    },
-    {
-      "id": "government",
-      "name": "City Government",
-      "contacts": [
-        { "name": "Cebu City Hall", "number": "032-2556811" },
-        { "name": "BPLO (Business Permits)", "number": "032-2558173" },
-        { "name": "City Social Welfare Services", "number": "032-2539143" }
+        {
+          "name": "Fire Department Regional Office",
+          "number": "(032) 517 9027",
+          "label": "Regional Office"
+        },
+        {
+          "name": "Fire Department",
+          "number": "(032) 254 8385",
+          "label": "Alternative listed contact"
+        }
       ]
     }
   ]

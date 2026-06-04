@@ -36,6 +36,7 @@ export const Strings = {
     home: 'Home',
     services: 'Services',
     news: 'News',
+    emergency: 'Emergency',
     account: 'Account',
   },
 

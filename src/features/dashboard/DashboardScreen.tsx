@@ -29,6 +29,7 @@ import { Strings } from '@/l10n/strings';
 
 import { AskGiyaButton } from './components/AskGiyaButton';
 import { BottomNav } from './components/BottomNav';
+import type { TabId } from './components/BottomNav';
 import { NewsCarousel } from './components/NewsCarousel';
 import { RadialGlow } from './components/RadialGlow';
 import { SearchBar } from './components/SearchBar';
@@ -79,6 +80,12 @@ export default function DashboardScreen() {
 
   const handleSurvey = () => {
     // TODO: open the feedback survey.
+  };
+
+  const handleTabChange = (tab: TabId) => {
+    if (tab === 'emergency') {
+      navigateTo(Routes.EMERGENCY);
+    }
   };
 
   const rows = chunk(SERVICES_V2, 4);
@@ -158,7 +165,7 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      <BottomNav active="home" />
+      <BottomNav active="home" onChange={handleTabChange} />
       <StatusBar style="dark" />
     </View>
   );

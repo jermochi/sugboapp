@@ -12,7 +12,7 @@ import { Icon, type IconName } from '@/core/components';
 import { BrandColors, Fonts } from '@/core/theme';
 import { Strings } from '@/l10n/strings';
 
-export type TabId = 'home' | 'services' | 'news' | 'account';
+export type TabId = 'home' | 'services' | 'news' | 'emergency' | 'account';
 
 interface NavItem {
   id: TabId;
@@ -24,6 +24,7 @@ const ITEMS: NavItem[] = [
   { id: 'home', icon: 'home', label: Strings.nav.home },
   { id: 'services', icon: 'services', label: Strings.nav.services },
   { id: 'news', icon: 'news', label: Strings.nav.news },
+  { id: 'emergency', icon: 'emergency', label: Strings.nav.emergency },
   { id: 'account', icon: 'account', label: Strings.nav.account },
 ];
 
