@@ -159,6 +159,30 @@ export async function generateContent(
 }
 
 /**
+ * Generate a plain-text answer under a caller-supplied system instruction, with
+ * NO tools. Used by in-context helpers (e.g. the permit helper) that need a
+ * grounded explanation rather than routing. Throws GeminiError on failure.
+ */
+export async function generateGroundedText(
+  systemInstruction: string,
+  contents: GeminiContent[],
+  signal?: AbortSignal,
+): Promise<string> {
+  const turn = await postGenerateContent(
+    {
+      systemInstruction: { parts: [{ text: systemInstruction }] },
+      contents,
+      generationConfig: {
+        temperature: 0.4,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    },
+    signal,
+  );
+  return turn.text;
+}
+
+/**
  * Transcribe a recorded clip to text (no tools, verbatim, language preserved).
  * Returns '' when nothing intelligible was heard.
  */
