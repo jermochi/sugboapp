@@ -5,7 +5,9 @@
 import React from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -58,106 +60,111 @@ export function PermitHelperSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable
-        style={styles.backdrop}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close helper"
-      />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <ThemedText type="subtitle" color={BrandColors.charcoal} style={styles.heading}>
-          {step ? step.title : 'Ask about this permit'}
-        </ThemedText>
-        <ThemedText type="caption" color={BrandColors.muted}>
-          Grounded in this step’s official details.
-        </ThemedText>
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable
+          style={styles.backdrop}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close helper"
+        />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <ThemedText type="subtitle" color={BrandColors.charcoal} style={styles.heading}>
+            {step ? step.title : 'Ask about this permit'}
+          </ThemedText>
+          <ThemedText type="caption" color={BrandColors.muted}>
+            Grounded in this step’s official details.
+          </ThemedText>
 
-        <View style={styles.suggestions}>
-          {SUGGESTED.map((suggestion) => (
+          <View style={styles.suggestions}>
+            {SUGGESTED.map((suggestion) => (
+              <Pressable
+                key={suggestion}
+                onPress={() => ask(suggestion)}
+                accessibilityRole="button"
+                accessibilityLabel={suggestion}
+                style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+              >
+                <ThemedText type="caption" color={BrandColors.crimson}>
+                  {suggestion}
+                </ThemedText>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.answerBox}>
+            {loading ? (
+              <ActivityIndicator color={BrandColors.crimson} />
+            ) : answer ? (
+              <ScrollView>
+                <ThemedText type="bodySmall" color={BrandColors.charcoal}>
+                  {answer}
+                </ThemedText>
+              </ScrollView>
+            ) : (
+              <ThemedText type="bodySmall" color={BrandColors.muted}>
+                Pick a question above or type your own.
+              </ThemedText>
+            )}
+          </View>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              value={question}
+              onChangeText={setQuestion}
+              placeholder="Type a question…"
+              placeholderTextColor={BrandColors.muted}
+              style={styles.input}
+              onSubmitEditing={() => ask(question)}
+              returnKeyType="send"
+              editable={!loading}
+            />
             <Pressable
-              key={suggestion}
-              onPress={() => ask(suggestion)}
+              onPress={() => ask(question)}
+              disabled={!question.trim() || loading}
               accessibilityRole="button"
-              accessibilityLabel={suggestion}
-              style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+              accessibilityLabel="Ask"
+              style={({ pressed }) => [
+                styles.askButton,
+                (!question.trim() || loading) && styles.disabled,
+                pressed && styles.pressed,
+              ]}
             >
-              <ThemedText type="caption" color={BrandColors.crimson}>
-                {suggestion}
+              <ThemedText type="caption" color={BrandColors.white}>
+                Ask
               </ThemedText>
             </Pressable>
-          ))}
-        </View>
+          </View>
 
-        <View style={styles.answerBox}>
-          {loading ? (
-            <ActivityIndicator color={BrandColors.crimson} />
-          ) : answer ? (
-            <ScrollView>
-              <ThemedText type="bodySmall" color={BrandColors.charcoal}>
-                {answer}
-              </ThemedText>
-            </ScrollView>
-          ) : (
-            <ThemedText type="bodySmall" color={BrandColors.muted}>
-              Pick a question above or type your own.
-            </ThemedText>
-          )}
-        </View>
-
-        <View style={styles.inputRow}>
-          <TextInput
-            value={question}
-            onChangeText={setQuestion}
-            placeholder="Type a question…"
-            placeholderTextColor={BrandColors.muted}
-            style={styles.input}
-            onSubmitEditing={() => ask(question)}
-            returnKeyType="send"
-            editable={!loading}
-          />
           <Pressable
-            onPress={() => ask(question)}
-            disabled={!question.trim() || loading}
+            onPress={onClose}
             accessibilityRole="button"
-            accessibilityLabel="Ask"
-            style={({ pressed }) => [
-              styles.askButton,
-              (!question.trim() || loading) && styles.disabled,
-              pressed && styles.pressed,
-            ]}
+            accessibilityLabel="Close"
+            style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
           >
-            <ThemedText type="caption" color={BrandColors.white}>
-              Ask
+            <ThemedText type="caption" color={BrandColors.muted}>
+              Close
             </ThemedText>
           </Pressable>
         </View>
-
-        <Pressable
-          onPress={onClose}
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
-        >
-          <ThemedText type="caption" color={BrandColors.muted}>
-            Close
-          </ThemedText>
-        </Pressable>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
   },
   sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     backgroundColor: BrandColors.white,

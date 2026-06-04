@@ -1,7 +1,7 @@
 /**
  * StepDetail — one permit step: office + directions, the requirements checklist,
- * fee/time, notes, and a mark-done toggle. "Ask Giya" opens the helper for this
- * step (handled by the parent screen).
+ * fee/time, notes, a mark-done toggle, and a "Proceed to next step" action.
+ * Asking Giya is handled by the floating helper button on the screen.
  */
 import * as Linking from 'expo-linking';
 import React from 'react';
@@ -30,14 +30,16 @@ export function StepDetail({
   done,
   onToggleRequirement,
   onToggleDone,
-  onAskHelper,
+  onProceed,
+  isLastStep,
 }: {
   step: PermitStep;
   checkedRequirements: number[];
   done: boolean;
   onToggleRequirement: (index: number) => void;
   onToggleDone: () => void;
-  onAskHelper: () => void;
+  onProceed: () => void;
+  isLastStep: boolean;
 }) {
   const reason = isAddOn(step) ? addOnReason(step) : null;
 
@@ -146,13 +148,13 @@ export function StepDetail({
       </Pressable>
 
       <Pressable
-        onPress={onAskHelper}
+        onPress={onProceed}
         accessibilityRole="button"
-        accessibilityLabel="Ask Giya about this step"
-        style={({ pressed }) => [styles.outlineButton, styles.askButton, pressed && styles.pressed]}
+        accessibilityLabel={isLastStep ? 'Back to roadmap' : 'Proceed to next step'}
+        style={({ pressed }) => [styles.proceedButton, pressed && styles.pressed]}
       >
-        <ThemedText type="caption" color={BrandColors.crimson}>
-          Ask Giya about this step
+        <ThemedText type="button" color={BrandColors.white}>
+          {isLastStep ? 'Back to roadmap' : 'Proceed to next step →'}
         </ThemedText>
       </Pressable>
     </View>
@@ -231,6 +233,13 @@ const styles = StyleSheet.create({
     backgroundColor: BrandColors.success,
     borderColor: BrandColors.success,
   },
+  proceedButton: {
+    minHeight: 50,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BrandColors.crimson,
+  },
   outlineButton: {
     alignSelf: 'flex-start',
     minHeight: 40,
@@ -240,9 +249,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: BrandColors.crimson,
-  },
-  askButton: {
-    alignSelf: 'center',
   },
   pressed: {
     opacity: 0.72,
