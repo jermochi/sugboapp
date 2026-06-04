@@ -13,6 +13,7 @@ import type {
   LegalStructure,
   PermitProfile,
 } from '@/core/models/permit';
+import { Routes } from '@/core/routing';
 
 import {
   addOnReason,
@@ -109,6 +110,14 @@ export const getPermitPathHandler: AIFunctionHandler = {
         isAddOn: isAddOn(step),
         addOnReason: addOnReason(step),
       })),
+      // Surface a navigable destination so the chat renders a tap-to-open button
+      // (opening the permit screen pre-seeded with this profile) without relying
+      // on the model to separately call route_to_service.
+      available: true,
+      serviceId: 'permit',
+      service: 'Business Permit walkthrough',
+      route: Routes.PERMIT,
+      params: { profile: JSON.stringify(profile) },
     };
   },
 };

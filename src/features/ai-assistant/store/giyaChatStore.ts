@@ -194,13 +194,16 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
                 error: err instanceof Error ? err.message : 'dispatch failed',
               };
             }
-            // Capture a resolved destination so the reply can offer a button.
-            if (fc.name === 'route_to_service' && response.available && response.route) {
+            // Any handler that resolves a navigable destination (route_to_service
+            // or get_permit_path) lets the reply offer a tap-to-open button.
+            if (response.available && response.route) {
               routeAction = {
                 serviceId: String(response.serviceId ?? ''),
                 label: String(response.service ?? ''),
                 route: response.route as RouteName,
-                params: fc.args.params as Record<string, string> | undefined,
+                params: (response.params ?? fc.args.params) as
+                  | Record<string, string>
+                  | undefined,
               };
             }
             return { name: fc.name, response };
@@ -210,7 +213,26 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
           role: 'user',
           parts: responses.map((r) => ({ functionResponse: r })),
         });
+        if (__DEV__) {
+          console.log(
+            '[Giya] tool round',
+            round,
+            '·',
+            responses.map((r) => `${r.name}:${String(r.response.status ?? '?')}`).join(', '),
+            '· routeAction:',
+            routeAction?.serviceId ?? 'none',
+          );
+        }
         turn = await generateContent(working);
+      }
+
+      if (__DEV__) {
+        console.log(
+          '[Giya] turn done · hasText:',
+          Boolean(turn.text),
+          '· routeAction:',
+          routeAction?.serviceId ?? 'none',
+        );
       }
 
       // If the model ended a tool round with no text, prefer a "tap the button"
