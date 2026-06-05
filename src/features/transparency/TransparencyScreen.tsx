@@ -5,6 +5,7 @@
 
 import * as WebBrowser from 'expo-web-browser';
 import { useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
   Pressable,
@@ -155,6 +156,7 @@ export default function TransparencyScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.safe}>
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
