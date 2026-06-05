@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AIHelperButton, ThemedText, ThemedView } from '@/core/components';
 import type { PermitProfile, PermitStep } from '@/core/models/permit';
 import { goBack as goBackRoute } from '@/core/routing';
+import { ShowMeAround, TourTargets, useAutoTour } from '@/core/tour';
 import { BorderRadius, BrandColors, Spacing } from '@/core/theme';
 
 import { IntakeWizard } from './components/IntakeWizard';
@@ -66,6 +67,13 @@ export default function PermitScreen() {
   const detailStep = steps.find((step) => step.id === detailStepId) ?? null;
   const detailIndex = steps.findIndex((step) => step.id === detailStepId);
   const isLastStep = detailIndex >= 0 && detailIndex === steps.length - 1;
+
+  // The roadmap is the tour-worthy view; auto-run the Permits walkthrough the
+  // first time it appears (replayable via the header ShowMeAround button).
+  const inRoadmap = Boolean(
+    hasHydrated && profile && profile.application === 'new' && !showComplete && !detailStep,
+  );
+  useAutoTour('permit', inRoadmap);
 
   const handleProceed = () => {
     if (detailIndex < 0) return;
@@ -131,6 +139,7 @@ export default function PermitScreen() {
             <ThemedText type="title" color={BrandColors.charcoal} numberOfLines={1} style={styles.pageTitle}>
               {title}
             </ThemedText>
+            {inRoadmap ? <ShowMeAround tourId="permit" /> : null}
           </View>
 
           {!hasHydrated ? (
@@ -171,6 +180,7 @@ export default function PermitScreen() {
           key={detailStepId ?? 'roadmap'}
           context="permit"
           hint="Ask Giya about this step"
+          tourId={inRoadmap ? TourTargets.permitGiya : undefined}
           onPress={() => setHelperVisible(true)}
         />
       ) : null}

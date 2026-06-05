@@ -10,6 +10,7 @@ import { registerEmergencyHandlers } from '@/features/emergency/aiHandler';
 import { registerPermitHandlers } from '@/features/permit/handlers/registerPermitHandlers';
 import { registerTransparencyHandlers } from '@/features/transparency/ai/registerTransparencyHandlers';
 import { useConnectivityStore } from '@/core/services/connectivityService';
+import { TourProvider, TourOverlay } from '@/core/tour';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Lato_700Bold, Lato_900Black } from '@expo-google-fonts/lato';
@@ -22,7 +23,7 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
+import { useColorScheme, View } from 'react-native';
 
 // Keep the splash screen up until the brand fonts are ready.
 SplashScreen.preventAutoHideAsync();
@@ -67,38 +68,44 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="giya-chat" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen
-          name="transparency"
-          options={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#FFFFFF' },
-            statusBarBackgroundColor: '#FFFFFF',
-            statusBarStyle: 'dark',
-          }}
-        />
-        <Stack.Screen
-          name="permit"
-          options={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#FFFFFF' },
-            statusBarBackgroundColor: '#FFFFFF',
-            statusBarStyle: 'dark',
-          }}
-        />
-        <Stack.Screen
-          name="emergency"
-          options={{
-            headerShown: false,
-            contentStyle: { backgroundColor: '#FFFFFF' },
-            statusBarBackgroundColor: '#FFFFFF',
-            statusBarStyle: 'dark',
-          }}
-        />
-      </Stack>
+      <TourProvider>
+        <View style={{ flex: 1 }}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="giya-chat" />
+            <Stack.Screen name="onboarding" />
+            <Stack.Screen
+              name="transparency"
+              options={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#FFFFFF' },
+                statusBarBackgroundColor: '#FFFFFF',
+                statusBarStyle: 'dark',
+              }}
+            />
+            <Stack.Screen
+              name="permit"
+              options={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#FFFFFF' },
+                statusBarBackgroundColor: '#FFFFFF',
+                statusBarStyle: 'dark',
+              }}
+            />
+            <Stack.Screen
+              name="emergency"
+              options={{
+                headerShown: false,
+                contentStyle: { backgroundColor: '#FFFFFF' },
+                statusBarBackgroundColor: '#FFFFFF',
+                statusBarStyle: 'dark',
+              }}
+            />
+          </Stack>
+          {/* Spotlight walkthrough overlay — sits above every screen. */}
+          <TourOverlay />
+        </View>
+      </TourProvider>
     </ThemeProvider>
   );
 }

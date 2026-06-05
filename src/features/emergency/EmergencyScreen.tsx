@@ -23,6 +23,7 @@ import { Icon } from '@/core/components';
 import type { Contact, HotlineCategory } from '@/core/models';
 import { navigateTo, Routes } from '@/core/routing';
 import { BorderRadius, BrandColors, Fonts, Spacing } from '@/core/theme';
+import { ShowMeAround, TourSpot, TourTargets, useAutoTour } from '@/core/tour';
 import { BottomNav, type TabId } from '@/features/dashboard/components/BottomNav';
 
 import { emergencyHotlineData } from './data';
@@ -94,6 +95,9 @@ export default function EmergencyScreen() {
 
   const cdrmmo = categories.find((category) => category.id === 'cdrmmo');
 
+  // Walk the user through the hotline directory on first open.
+  useAutoTour('emergency');
+
   const handleTabChange = (tab: TabId) => {
     if (tab === 'home') navigateTo(Routes.DASHBOARD);
   };
@@ -109,6 +113,7 @@ export default function EmergencyScreen() {
         >
           <View style={styles.headerRow}>
             <Text style={styles.title}>Emergency</Text>
+            <ShowMeAround tourId="emergency" />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Emergency alerts"
@@ -118,25 +123,29 @@ export default function EmergencyScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.searchBox}>
-            <Icon name="search" size={24} color="#A5A5A9" strokeWidth={2} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search..."
-              placeholderTextColor="#A5A5A9"
-              style={styles.searchInput}
-              accessibilityLabel="Search emergency hotlines"
-            />
-          </View>
+          <TourSpot id={TourTargets.emerSearch}>
+            <View style={styles.searchBox}>
+              <Icon name="search" size={24} color="#A5A5A9" strokeWidth={2} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search..."
+                placeholderTextColor="#A5A5A9"
+                style={styles.searchInput}
+                accessibilityLabel="Search emergency hotlines"
+              />
+            </View>
+          </TourSpot>
 
           {emergencyHotlineData.primary ? (
-            <EmergencySlider contact={emergencyHotlineData.primary} />
+            <TourSpot id={TourTargets.emerSlide}>
+              <EmergencySlider contact={emergencyHotlineData.primary} />
+            </TourSpot>
           ) : null}
 
           {cdrmmo ? <ComcenCard category={cdrmmo} /> : null}
 
-          <View style={styles.categoryGrid}>
+          <TourSpot id={TourTargets.emerCategories} style={styles.categoryGrid}>
             {filteredCategories
               .filter((category) => category.id !== 'cdrmmo')
               .map((category) => (
@@ -146,7 +155,7 @@ export default function EmergencyScreen() {
                   onPress={() => setActiveCategory(category)}
                 />
               ))}
-          </View>
+          </TourSpot>
         </ScrollView>
       </SafeAreaView>
 

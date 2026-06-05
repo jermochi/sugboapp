@@ -10,6 +10,7 @@
 import { Icon, type IconName } from '@/core/components';
 import { goBack } from '@/core/routing';
 import { useConnectivityStore } from '@/core/services/connectivityService';
+import { TourSpot, TourTargets, useAutoTour } from '@/core/tour';
 import { BrandColors, Fonts } from '@/core/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -324,6 +325,9 @@ export default function GiyaChatScreen() {
   const isThinking = status === 'thinking';
   const isRecording = voice.isRecording;
 
+  // Walk the user through the voice-first welcome screen on first open.
+  useAutoTour('giya', !hasConversation && inputMode === 'voice');
+
   // Leaving the chat ends the session \u2014 start fresh next time.
   useEffect(() => reset, [reset]);
 
@@ -354,20 +358,24 @@ export default function GiyaChatScreen() {
               ? 'Giya is thinking…'
               : 'Tap to speak'}
       </Text>
-      <VoiceMic recording={isRecording} onPress={handleMic} />
-      <Pressable
-        onPress={() => setInputMode('text')}
-        disabled={isRecording || voice.isBusy}
-        accessibilityRole="button"
-        accessibilityLabel="Type instead"
-        style={({ pressed }) => [
-          styles.keyboardToggle,
-          (pressed || isRecording || voice.isBusy) && styles.pressed,
-        ]}
-      >
-        <Icon name="keyboard" size={18} color="#fff" strokeWidth={2} />
-        <Text style={styles.keyboardToggleLabel}>Type instead</Text>
-      </Pressable>
+      <TourSpot id={TourTargets.giyaMic}>
+        <VoiceMic recording={isRecording} onPress={handleMic} />
+      </TourSpot>
+      <TourSpot id={TourTargets.giyaType}>
+        <Pressable
+          onPress={() => setInputMode('text')}
+          disabled={isRecording || voice.isBusy}
+          accessibilityRole="button"
+          accessibilityLabel="Type instead"
+          style={({ pressed }) => [
+            styles.keyboardToggle,
+            (pressed || isRecording || voice.isBusy) && styles.pressed,
+          ]}
+        >
+          <Icon name="keyboard" size={18} color="#fff" strokeWidth={2} />
+          <Text style={styles.keyboardToggleLabel}>Type instead</Text>
+        </Pressable>
+      </TourSpot>
     </View>
   );
 
@@ -401,7 +409,9 @@ export default function GiyaChatScreen() {
           />
         ) : (
           <View style={styles.hero}>
-            <GiyaPortrait />
+            <TourSpot id={TourTargets.giyaPortrait}>
+              <GiyaPortrait />
+            </TourSpot>
             <View style={styles.greeting}>
               <Text style={styles.headline}>{'How Can I Help\nYou Today?'}</Text>
               <Text style={styles.subtitle}>{'Ako si Giya \u00b7 Ask me anything'}</Text>

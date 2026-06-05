@@ -9,6 +9,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/core/components';
+import { TourSpot, TourTargets } from '@/core/tour';
 import { BrandColors, Fonts } from '@/core/theme';
 import { Strings } from '@/l10n/strings';
 
@@ -43,15 +44,8 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
         {ITEMS.map((it) => {
           const on = active === it.id;
           const color = on ? BrandColors.crimson : INACTIVE;
-          return (
-            <Pressable
-              key={it.id}
-              onPress={() => onChange?.(it.id)}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={it.label}
-              style={styles.tab}
-            >
+          const inner = (
+            <>
               <Icon name={it.icon} size={24} color={color} strokeWidth={on ? 2 : 1.7} />
               <Text
                 style={[
@@ -61,6 +55,24 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
               >
                 {it.label}
               </Text>
+            </>
+          );
+          return (
+            <Pressable
+              key={it.id}
+              onPress={() => onChange?.(it.id)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={it.label}
+              style={styles.tab}
+            >
+              {it.id === 'emergency' ? (
+                <TourSpot id={TourTargets.dashEmergencyTab} style={styles.tabSpot}>
+                  {inner}
+                </TourSpot>
+              ) : (
+                inner
+              )}
             </Pressable>
           );
         })}
@@ -94,6 +106,10 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingHorizontal: 6,
     minWidth: 56,
+  },
+  tabSpot: {
+    alignItems: 'center',
+    gap: 4,
   },
   label: {
     fontSize: 11,
