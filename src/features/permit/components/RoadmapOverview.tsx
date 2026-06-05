@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/core/components';
 import type { PermitProfile, PermitStep } from '@/core/models/permit';
+import { TourSpot, TourTargets } from '@/core/tour';
 import { BorderRadius, BrandColors, Spacing } from '@/core/theme';
 
 import {
@@ -38,26 +39,27 @@ export function RoadmapOverview({
 
   return (
     <View style={styles.container}>
-      <View style={styles.summaryCard}>
-        <ThemedText type="caption" color={BrandColors.muted}>
-          Estimated total fees
-        </ThemedText>
-        <ThemedText type="title" color={BrandColors.charcoal} style={styles.feeTotal}>
-          {formatEstimatedFees(totals)}
-        </ThemedText>
-        <ThemedText type="caption" color={BrandColors.muted}>
-          {doneCount} of {steps.length} steps done · {profile.businessType} ·{' '}
-          {profile.legalStructure}
-        </ThemedText>
-      </View>
+      <TourSpot id={TourTargets.permitSummary}>
+        <View style={styles.summaryCard}>
+          <ThemedText type="caption" color={BrandColors.muted}>
+            Estimated total fees
+          </ThemedText>
+          <ThemedText type="title" color={BrandColors.charcoal} style={styles.feeTotal}>
+            {formatEstimatedFees(totals)}
+          </ThemedText>
+          <ThemedText type="caption" color={BrandColors.muted}>
+            {doneCount} of {steps.length} steps done · {profile.businessType} ·{' '}
+            {profile.legalStructure}
+          </ThemedText>
+        </View>
+      </TourSpot>
 
       <View style={styles.stepList}>
         {steps.map((step, position) => {
           const done = doneSteps.includes(step.id);
           const reason = isAddOn(step) ? addOnReason(step) : null;
-          return (
+          const row = (
             <Pressable
-              key={step.id}
               onPress={() => onStepPress(step)}
               accessibilityRole="button"
               accessibilityLabel={step.title}
@@ -90,6 +92,14 @@ export function RoadmapOverview({
                 ›
               </ThemedText>
             </Pressable>
+          );
+          // Spotlight the first step for the walkthrough.
+          return position === 0 ? (
+            <TourSpot key={step.id} id={TourTargets.permitStep}>
+              {row}
+            </TourSpot>
+          ) : (
+            <React.Fragment key={step.id}>{row}</React.Fragment>
           );
         })}
       </View>
