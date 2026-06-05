@@ -10,6 +10,7 @@ import React from 'react';
 import { Animated, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { BorderRadius, BrandColors, Spacing } from '@/core/theme';
+import { useTourTarget } from '@/core/tour/TourContext';
 import { ThemedText } from './ThemedText';
 
 const GIYA_HEAD = require('../../../assets/images/giya-head.png');
@@ -26,11 +27,14 @@ interface AIHelperButtonProps {
   onPress?: (context?: string) => void;
   /** Optional conversational hint shown briefly on mount, then faded out. */
   hint?: string;
+  /** Optional walkthrough target id so a tour can spotlight this button. */
+  tourId?: string;
 }
 
-export function AIHelperButton({ context, onPress, hint }: AIHelperButtonProps) {
+export function AIHelperButton({ context, onPress, hint, tourId }: AIHelperButtonProps) {
   const fade = React.useRef(new Animated.Value(0)).current;
   const [hintShown, setHintShown] = React.useState(Boolean(hint));
+  const tourRef = useTourTarget(tourId ?? '');
 
   React.useEffect(() => {
     if (!hint) return;
@@ -54,7 +58,7 @@ export function AIHelperButton({ context, onPress, hint }: AIHelperButtonProps) 
   }, [hint, fade]);
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View ref={tourRef} collapsable={false} style={styles.wrap} pointerEvents="box-none">
       {hint && hintShown ? (
         <Animated.View style={[styles.hintBubble, { opacity: fade }]} pointerEvents="none">
           <ThemedText type="caption" color={BrandColors.charcoal} style={styles.hintText}>
