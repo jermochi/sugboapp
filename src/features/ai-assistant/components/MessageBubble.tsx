@@ -16,6 +16,8 @@ import { BrandColors, Fonts } from '@/core/theme';
 import type { ChatAction, ChatMessage } from '../store/giyaChatStore';
 import { TypingIndicator } from './TypingIndicator';
 
+const LIGHT_GOLD = '#FFE7A8';
+
 export function MessageBubble({
   message,
   onAction,
@@ -36,13 +38,14 @@ export function MessageBubble({
     return (
       <View style={[styles.row, styles.rowUser]}>
         <LinearGradient
-          colors={['rgba(255,221,150,0.96)', 'rgba(218,165,32,0.92)']}
+          colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
+          locations={[0, 0.58, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.bubble, styles.bubbleUser]}
         >
           {message.transcribing ? (
-            <TypingIndicator color="#7c0d0d" />
+            <TypingIndicator color="#fff" />
           ) : (
             <Text style={[styles.text, styles.textUser]}>{message.text}</Text>
           )}
@@ -76,8 +79,16 @@ export function MessageBubble({
                   accessibilityLabel={option}
                   style={({ pressed }) => [styles.choiceChip, pressed && styles.choiceChipPressed]}
                 >
-                  <Text style={styles.choiceText}>{option}</Text>
+                  <LinearGradient
+                    colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
+                    locations={[0, 0.58, 1]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.choiceGradient}
+                  >
+                    <Text style={styles.choiceText}>{option}</Text>
                   <Text style={styles.choiceChevron}>›</Text>
+                  </LinearGradient>
                 </Pressable>
               ))}
             </View>
@@ -105,19 +116,19 @@ function ActionChip({
         style={({ pressed }) => [styles.actionWrap, pressed && styles.actionPressed]}
       >
         <LinearGradient
-          colors={['#ffd98a', BrandColors.gold, '#b8860b']}
+          colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
           locations={[0, 0.6, 1]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.actionChip}
         >
           {action.icon ? (
-            <Icon name={action.icon} size={17} color="#7c0d0d" strokeWidth={2} />
+            <Icon name={action.icon} size={17} color={LIGHT_GOLD} strokeWidth={2} />
           ) : null}
           <Text style={styles.actionLabel} numberOfLines={2}>
             {action.label}
           </Text>
-          <Icon name="chevron" size={16} color="#7c0d0d" strokeWidth={2.4} />
+          <Icon name="chevron" size={16} color={LIGHT_GOLD} strokeWidth={2.4} />
         </LinearGradient>
       </Pressable>
     </View>
@@ -149,12 +160,14 @@ const styles = StyleSheet.create({
   bubbleUser: {
     maxWidth: '82%',
     borderBottomRightRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'rgba(218,165,32,0.4)',
   },
   bubbleGiya: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.82)',
     borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.24)',
+    borderColor: 'rgba(42,42,42,0.08)',
     borderBottomLeftRadius: 6,
   },
   text: {
@@ -163,10 +176,10 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   textUser: {
-    color: '#5a0b0b',
+    color: '#fff',
   },
   textGiya: {
-    color: '#FFF3E0',
+    color: '#1E1E1E',
   },
   options: {
     width: '100%',
@@ -176,7 +189,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodyBold,
     fontSize: 10.5,
     letterSpacing: 1.4,
-    color: 'rgba(255,221,150,0.72)',
+    color: 'rgba(42,42,42,0.48)',
     marginLeft: 4,
   },
   optionRow: {
@@ -185,30 +198,31 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   choiceChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    backgroundColor: 'rgba(255,221,150,0.12)',
+    overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,221,150,0.55)',
+    borderColor: 'rgba(218,165,32,0.4)',
   },
   choiceChipPressed: {
     opacity: 0.78,
-    backgroundColor: 'rgba(255,221,150,0.22)',
+  },
+  choiceGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
   choiceText: {
-    fontFamily: Fonts.bodySemiBold,
+    fontFamily: Fonts.bodyBold,
     fontSize: 13.5,
-    color: '#FFE7B8',
+    color: LIGHT_GOLD,
   },
   choiceChevron: {
     fontFamily: Fonts.bodyBold,
     fontSize: 16,
     lineHeight: 16,
-    color: 'rgba(255,221,150,0.85)',
+    color: LIGHT_GOLD,
     marginTop: -1,
   },
   actionWrap: {
@@ -230,12 +244,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(218,165,32,0.4)',
   },
   actionLabel: {
     flexShrink: 1,
     fontFamily: Fonts.bodyBold,
     fontSize: 14,
-    color: '#7c0d0d',
+    color: LIGHT_GOLD,
     letterSpacing: 0.2,
   },
 });
