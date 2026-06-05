@@ -4,18 +4,8 @@
  */
 
 export const Strings = {
-  // Onboarding
-  onboarding: {
-    title1: 'Welcome to SugboApp',
-    desc1: 'One app for every Cebu City government service, hotline, and announcement.',
-    title2: 'AI Assistant',
-    desc2: 'Ask in Cebuano, Tagalog, or English — our AI walks you to the right service.',
-    title3: 'Get Started',
-    desc3: 'Tap the AI bar or browse services directly.',
-    skip: 'Skip',
-    next: 'Next',
-    done: 'Get Started',
-  },
+  // Onboarding copy lives feature-local in src/features/onboarding/data.ts
+  // (per-slide, matching the dashboard's data-driven pattern).
 
   // Dashboard — "Meet Giya" home screen
   dashboard: {
