@@ -5,7 +5,8 @@
  * All screen logic lives in src/features/.
  */
 
-import { registerCoreHandlers } from '@/core/ai-contract';
+import { aiFunctionRegistry, registerCoreHandlers } from '@/core/ai-contract';
+import { registerEmergencyHandlers } from '@/features/emergency/aiHandler';
 import { registerPermitHandlers } from '@/features/permit/handlers/registerPermitHandlers';
 import { registerTransparencyHandlers } from '@/features/transparency/ai/registerTransparencyHandlers';
 import { useConnectivityStore } from '@/core/services/connectivityService';
@@ -28,9 +29,10 @@ import { useColorScheme, View } from 'react-native';
 SplashScreen.preventAutoHideAsync();
 
 // Wire AI function handlers into the registry once. Core owns route_to_service +
-// ask_clarification; each feature registers its own (permit: get_permit_path,
-// explain; transparency: query_budget).
+// ask_clarification; each feature registers its own (emergency: query_hotlines,
+// permit: get_permit_path/explain; transparency: query_budget).
 registerCoreHandlers();
+registerEmergencyHandlers(aiFunctionRegistry);
 registerPermitHandlers();
 registerTransparencyHandlers();
 

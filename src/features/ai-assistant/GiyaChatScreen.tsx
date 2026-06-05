@@ -42,8 +42,8 @@ function GiyaBackground() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <LinearGradient
-        colors={['#c0242a', '#9a0d0d', '#6b0707', '#3c0303']}
-        locations={[0, 0.36, 0.72, 1]}
+        colors={['#FFF8EC', '#F7E8CF', '#EED4A7']}
+        locations={[0, 0.58, 1]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -51,17 +51,23 @@ function GiyaBackground() {
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Defs>
           <RadialGradient id="giya-screen-glow" cx="50%" cy="30%" r="72%">
-            <Stop offset="0%" stopColor="#ff4a4f" stopOpacity={0.36} />
-            <Stop offset="45%" stopColor="#c0242a" stopOpacity={0.16} />
-            <Stop offset="100%" stopColor="#c0242a" stopOpacity={0} />
+            <Stop offset="0%" stopColor="#FFFFFF" stopOpacity={0.72} />
+            <Stop offset="48%" stopColor="#F6DCA9" stopOpacity={0.2} />
+            <Stop offset="100%" stopColor="#F6DCA9" stopOpacity={0} />
           </RadialGradient>
           <RadialGradient id="giya-screen-vignette" cx="50%" cy="36%" r="78%">
-            <Stop offset="52%" stopColor="#000000" stopOpacity={0} />
-            <Stop offset="88%" stopColor="#280202" stopOpacity={0.55} />
-            <Stop offset="100%" stopColor="#1c0101" stopOpacity={0.82} />
+            <Stop offset="38%" stopColor="#FFFFFF" stopOpacity={0} />
+            <Stop offset="74%" stopColor="#8D5E1E" stopOpacity={0.34} />
+            <Stop offset="100%" stopColor="#3F2108" stopOpacity={0.58} />
+          </RadialGradient>
+          <RadialGradient id="giya-corner-depth" cx="50%" cy="100%" r="84%">
+            <Stop offset="0%" stopColor="#5E3410" stopOpacity={0.42} />
+            <Stop offset="48%" stopColor="#8D5E1E" stopOpacity={0.18} />
+            <Stop offset="100%" stopColor="#FFFFFF" stopOpacity={0} />
           </RadialGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#giya-screen-glow)" />
+        <Rect width="100%" height="100%" fill="url(#giya-corner-depth)" />
         <Rect width="100%" height="100%" fill="url(#giya-screen-vignette)" />
       </Svg>
     </View>
@@ -87,7 +93,7 @@ function ChromeButton({
       style={({ pressed }) => [styles.chromeButton, pressed && styles.pressed]}
     >
       <View style={rotate ? { transform: [{ rotate: `${rotate}deg` }] } : undefined}>
-        <Icon name={icon} size={19} color="#FFE7B8" strokeWidth={2} />
+        <Icon name={icon} size={19} color="#2A2A2A" strokeWidth={2} />
       </View>
     </Pressable>
   );
@@ -179,7 +185,7 @@ function GiyaPortrait({ size = 190 }: { size?: number }) {
       />
       <View style={styles.portraitFrame}>
         <LinearGradient
-          colors={['#7c1414', '#5c0808', '#3a0404']}
+          colors={['#FFF8EC', '#F1D8A6', '#D7A53D']}
           locations={[0, 0.55, 1]}
           start={{ x: 0.5, y: 0.25 }}
           end={{ x: 0.5, y: 1 }}
@@ -232,7 +238,7 @@ function ComposerButton({
       <Icon
         name={icon}
         size={18}
-        color={active ? '#7c0d0d' : '#FFE7B8'}
+        color="#fff"
         strokeWidth={2}
       />
     </Pressable>
@@ -289,14 +295,14 @@ function VoiceMic({
         colors={
           recording
             ? ['#ff6b6b', '#d72631', '#a01722']
-            : ['#ffd98a', BrandColors.gold, '#b8860b']
+            : [BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]
         }
         locations={[0, 0.6, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.voiceMicGradient}
       >
-        <Icon name="mic" size={40} color={recording ? '#fff' : '#7c0d0d'} strokeWidth={2} />
+        <Icon name="mic" size={40} color="#fff" strokeWidth={2} />
       </LinearGradient>
     </Pressable>
   );
@@ -366,7 +372,7 @@ export default function GiyaChatScreen() {
             (pressed || isRecording || voice.isBusy) && styles.pressed,
           ]}
         >
-          <Icon name="keyboard" size={18} color="#FFE7B8" strokeWidth={2} />
+          <Icon name="keyboard" size={18} color="#fff" strokeWidth={2} />
           <Text style={styles.keyboardToggleLabel}>Type instead</Text>
         </Pressable>
       </TourSpot>
@@ -438,7 +444,7 @@ export default function GiyaChatScreen() {
                   value={draft}
                   onChangeText={setDraft}
                   placeholder={isRecording ? 'Listening\u2026' : 'Type what you want to know\u2026'}
-                  placeholderTextColor="rgba(255,243,224,0.6)"
+                  placeholderTextColor="rgba(42,42,42,0.48)"
                   returnKeyType="send"
                   onSubmitEditing={handleSend}
                   editable={!isThinking && !isRecording}
@@ -457,14 +463,14 @@ export default function GiyaChatScreen() {
                   ]}
                 >
                   <LinearGradient
-                    colors={['#ffd98a', BrandColors.gold, '#b8860b']}
+                    colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
                     locations={[0, 0.6, 1]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.sendGradient}
                   >
                     <View style={{ transform: [{ translateX: 1 }] }}>
-                      <Icon name="send" size={20} color="#7c0d0d" strokeWidth={2} />
+                      <Icon name="send" size={20} color="#fff" strokeWidth={2} />
                     </View>
                   </LinearGradient>
                 </Pressable>
@@ -473,7 +479,7 @@ export default function GiyaChatScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-      <StatusBar style="light" translucent />
+      <StatusBar style="dark" translucent />
     </View>
   );
 }
@@ -481,7 +487,7 @@ export default function GiyaChatScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#3c0303',
+    backgroundColor: '#FFF8EC',
     overflow: 'hidden',
   },
   content: {
@@ -500,10 +506,10 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.68)',
     borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.28)',
-    shadowColor: '#ffffff',
+    borderColor: 'rgba(42,42,42,0.08)',
+    shadowColor: '#8D5E1E',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.18,
     shadowRadius: 2,
@@ -514,7 +520,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Fonts.heading,
     fontSize: 17,
-    color: '#fff',
+    color: '#1E1E1E',
     letterSpacing: 0.2,
   },
   hero: {
@@ -530,8 +536,8 @@ const styles = StyleSheet.create({
   portraitHalo: {
     position: 'absolute',
     borderRadius: 999,
-    backgroundColor: 'rgba(255,214,128,0.28)',
-    shadowColor: '#ffd680',
+    backgroundColor: 'rgba(255,214,128,0.24)',
+    shadowColor: '#D7A53D',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.55,
     shadowRadius: 28,
@@ -543,7 +549,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 3,
     borderColor: 'rgba(255,221,150,0.85)',
-    shadowColor: '#500404',
+    shadowColor: '#8D5E1E',
     shadowOffset: { width: 0, height: 22 },
     shadowOpacity: 0.6,
     shadowRadius: 27,
@@ -571,18 +577,18 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 35.4,
     fontWeight: '900',
-    color: '#fff',
+    color: '#1E1E1E',
     letterSpacing: 0.2,
     textAlign: 'center',
-    textShadowColor: 'rgba(60,3,3,0.6)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 16,
+    textShadowColor: 'rgba(255,255,255,0.72)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   subtitle: {
     marginTop: 13,
     fontFamily: Fonts.bodyBold,
     fontSize: 12.5,
-    color: 'rgba(255,236,196,0.78)',
+    color: 'rgba(42,42,42,0.64)',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -596,7 +602,7 @@ const styles = StyleSheet.create({
   offlineNote: {
     fontFamily: Fonts.bodySemiBold,
     fontSize: 11,
-    color: 'rgba(255,236,196,0.7)',
+    color: 'rgba(42,42,42,0.58)',
     textAlign: 'center',
     marginBottom: 8,
     letterSpacing: 0.3,
@@ -609,7 +615,7 @@ const styles = StyleSheet.create({
   voiceHint: {
     fontFamily: Fonts.bodySemiBold,
     fontSize: 13,
-    color: 'rgba(255,236,196,0.82)',
+    color: 'rgba(42,42,42,0.68)',
     letterSpacing: 0.3,
   },
   voiceMicWrap: {
@@ -631,7 +637,7 @@ const styles = StyleSheet.create({
     borderRadius: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: BrandColors.crimson,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.36,
     shadowRadius: 14,
@@ -644,14 +650,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: BrandColors.crimson,
     borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.22)',
+    borderColor: 'rgba(218,165,32,0.4)',
   },
   keyboardToggleLabel: {
     fontFamily: Fonts.bodySemiBold,
     fontSize: 12.5,
-    color: '#FFE7B8',
+    color: '#fff',
     letterSpacing: 0.2,
   },
   composer: {
@@ -664,10 +670,10 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingLeft: 14,
     borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(255,255,255,0.78)',
     borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.26)',
-    shadowColor: '#320202',
+    borderColor: 'rgba(42,42,42,0.08)',
+    shadowColor: '#8D5E1E',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -679,13 +685,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: BrandColors.crimson,
     borderWidth: 1,
-    borderColor: 'rgba(255,236,196,0.24)',
+    borderColor: 'rgba(218,165,32,0.4)',
   },
   composerButtonActive: {
-    backgroundColor: '#FFE7B8',
-    borderColor: '#FFE7B8',
+    backgroundColor: BrandColors.crimson,
+    borderColor: BrandColors.crimson,
   },
   input: {
     flex: 1,
@@ -694,7 +700,7 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     fontFamily: Fonts.body,
     fontSize: 14,
-    color: '#FFF3E0',
+    color: '#1E1E1E',
   },
   sendButton: {
     width: 44,
@@ -702,7 +708,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     flexShrink: 0,
-    shadowColor: '#000000',
+    shadowColor: BrandColors.crimson,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.32,
     shadowRadius: 8,
