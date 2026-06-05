@@ -18,6 +18,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { AIHelperButton, ThemedText, ThemedView } from '@/core/components';
 import { goBack as goBackRoute } from '@/core/routing';
+import { ShowMeAround, TourSpot, TourTargets, useAutoTour } from '@/core/tour';
 import { BrandColors, BorderRadius, Spacing } from '@/core/theme';
 import {
   budgetOverviews,
@@ -141,6 +142,10 @@ export default function TransparencyScreen() {
     setDateFilter('all');
     setProcurementFilter('all');
   };
+
+  // Walk the user through the hub the first time they open the tracker.
+  useAutoTour('transparency', mode === 'hub');
+
   const pageTitle =
     mode === 'hub'
       ? 'Transparency Tracker'
@@ -159,6 +164,7 @@ export default function TransparencyScreen() {
           <PageHeader
             title={pageTitle}
             onBackPress={goBack}
+            right={mode === 'hub' ? <ShowMeAround tourId="transparency" /> : undefined}
           />
 
           {mode === 'hub' ? (
@@ -184,7 +190,10 @@ export default function TransparencyScreen() {
           ) : null}
         </ScrollView>
       </SafeAreaView>
-      <AIHelperButton context={`transparency:${activeSection.id}`} />
+      <AIHelperButton
+        context={`transparency:${activeSection.id}`}
+        tourId={mode === 'hub' ? TourTargets.transGiya : undefined}
+      />
     </ThemedView>
   );
 }
@@ -210,13 +219,13 @@ function HubView({
         </ThemedText>
       </View>
 
-      <View style={styles.statsStrip}>
+      <TourSpot id={TourTargets.transStats} style={styles.statsStrip}>
         <MetricPill label="Records" value={String(stats.records)} />
         <MetricPill label="Files" value={String(stats.attachments)} />
         <MetricPill label="Sources" value={String(transparencySections.length)} />
-      </View>
+      </TourSpot>
 
-      <View style={styles.hubGrid}>
+      <TourSpot id={TourTargets.transGrid} style={styles.hubGrid}>
         {transparencySections.map((section) => (
           <SectionCard
             key={section.id}
@@ -224,7 +233,7 @@ function HubView({
             onPress={() => onSectionPress(section)}
           />
         ))}
-      </View>
+      </TourSpot>
     </>
   );
 }
@@ -730,9 +739,11 @@ function DetailView({ record, tone }: { record: TransparencyRecord; tone: string
 function PageHeader({
   title,
   onBackPress,
+  right,
 }: {
   title: string;
   onBackPress: () => void;
+  right?: React.ReactNode;
 }) {
   return (
     <View style={styles.pageHeader}>
@@ -749,6 +760,7 @@ function PageHeader({
       <ThemedText type="title" color={UI_COLORS.text} numberOfLines={1} style={styles.pageTitle}>
         {title}
       </ThemedText>
+      {right}
     </View>
   );
 }

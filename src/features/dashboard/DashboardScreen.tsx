@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,6 +25,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { navigateTo, Routes } from '@/core/routing';
+import { resetOnboarding } from '@/features/onboarding/storage';
+import { ShowMeAround, TourSpot, TourTargets, useAutoTour, useTourStore } from '@/core/tour';
 import { BrandColors, Fonts } from '@/core/theme';
 import { Strings } from '@/l10n/strings';
 
@@ -68,6 +71,10 @@ function chunk(list: ServiceQuickLink[], size: number): ServiceQuickLink[][] {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
 
+  // First-open guided tour of the home screen (replayable via ShowMeAround).
+  useAutoTour('dashboard');
+  const resetTours = useTourStore((s) => s.resetTours);
+
   // Opens the visual shell for the Sugbo AI / Giya conversation.
   const handleAsk = () => {
     navigateTo(Routes.GIYA_CHAT);
@@ -80,6 +87,14 @@ export default function DashboardScreen() {
 
   const handleSurvey = () => {
     // TODO: open the feedback survey.
+  };
+
+  // TEMP (dev): clear the onboarding flag and replay the walkthrough. Remove
+  // before release — see resetOnboarding in features/onboarding/storage.
+  const handleResetOnboarding = async () => {
+    await resetOnboarding();
+    resetTours();
+    navigateTo(Routes.ONBOARDING);
   };
 
   const handleTabChange = (tab: TabId) => {
@@ -124,44 +139,62 @@ export default function DashboardScreen() {
 
         {/* Header content */}
         <View style={styles.header}>
-          <SearchBar placeholder={T.searchPlaceholder} onPress={handleAsk} />
+          <View style={styles.searchRow}>
+            <TourSpot id={TourTargets.dashSearch} style={styles.searchSpot}>
+              <SearchBar placeholder={T.searchPlaceholder} onPress={handleAsk} />
+            </TourSpot>
+            <ShowMeAround tourId="dashboard" />
+          </View>
 
           {/* Meet Giya — mascot floats free at left; sheet below paints over its lower body. */}
-          <View style={styles.giyaRow}>
-            <View style={styles.mascotCol}>
-              <Image source={MASCOT} style={styles.mascot} resizeMode="contain" />
+          <TourSpot id={TourTargets.dashAskGiya}>
+            <View style={styles.giyaRow}>
+              <View style={styles.mascotCol}>
+                <Image source={MASCOT} style={styles.mascot} resizeMode="contain" />
+              </View>
+              <View style={styles.giyaText}>
+                <Text style={styles.giyaTitle}>{T.giyaTitle}</Text>
+                <Text style={styles.giyaSubtitle}>{T.giyaSubtitle}</Text>
+                <AskGiyaButton label={T.askGiya} onPress={handleAsk} />
+              </View>
             </View>
-            <View style={styles.giyaText}>
-              <Text style={styles.giyaTitle}>{T.giyaTitle}</Text>
-              <Text style={styles.giyaSubtitle}>{T.giyaSubtitle}</Text>
-              <AskGiyaButton label={T.askGiya} onPress={handleAsk} />
-            </View>
-          </View>
+          </TourSpot>
         </View>
 
         {/* Content sheet — layered above the mascot. */}
         <View style={styles.sheet}>
           <SectionHeading title={T.servicesPrompt} style={styles.servicesHeading} />
-          <View style={styles.grid}>
-            {rows.map((row, r) => (
-              <View key={r} style={styles.gridRow}>
-                {row.map((service) => (
-                  <View key={service.label} style={styles.gridCell}>
-                    <ServiceGridTile
-                      icon={service.icon}
-                      label={service.label}
-                      onPress={() => handleService(service)}
-                    />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
+          <TourSpot id={TourTargets.dashServices}>
+            <View style={styles.grid}>
+              {rows.map((row, r) => (
+                <View key={r} style={styles.gridRow}>
+                  {row.map((service) => (
+                    <View key={service.label} style={styles.gridCell}>
+                      <ServiceGridTile
+                        icon={service.icon}
+                        label={service.label}
+                        onPress={() => handleService(service)}
+                      />
+                    </View>
+                  ))}
+                </View>
+              ))}
+            </View>
+          </TourSpot>
 
           <SectionHeading title={T.featuredNews} style={styles.newsHeading} />
           <NewsCarousel items={NEWS_V2} />
 
           <SurveyCta title={T.surveyTitle} subtitle={T.surveySubtitle} onPress={handleSurvey} />
+
+          {/* TEMP (dev only): replay the first-launch onboarding. Remove before release. */}
+          <Pressable
+            onPress={handleResetOnboarding}
+            style={({ pressed }) => [styles.devReset, pressed && styles.devResetPressed]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.devResetText}>Reset onboarding (dev)</Text>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -199,6 +232,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingHorizontal: 20,
     zIndex: 3,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  searchSpot: {
+    flex: 1,
   },
   giyaRow: {
     flexDirection: 'row',
@@ -295,5 +336,24 @@ const styles = StyleSheet.create({
   },
   gridCell: {
     flex: 1,
+  },
+  // TEMP (dev only) — remove with handleResetOnboarding before release.
+  devReset: {
+    marginTop: 20,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: BrandColors.warmGray,
+    backgroundColor: BrandColors.paper,
+  },
+  devResetPressed: {
+    opacity: 0.7,
+  },
+  devResetText: {
+    fontFamily: Fonts.bodySemiBold,
+    fontSize: 13,
+    color: BrandColors.muted,
   },
 });
