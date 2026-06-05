@@ -2,7 +2,7 @@
   "primary": {
     "name": "For Emergencies",
     "number": "911",
-    "label": "Police"
+    "label": ""
   },
   "categories": [
     {
@@ -40,8 +40,7 @@
         },
         {
           "name": "Vicente Sotto Memorial Medical Center",
-          "number": "0920 970 7617",
-          "label": "Smart"
+          "number": "0920 970 7617"
         },
         {
           "name": "Chong Hua Hospital",

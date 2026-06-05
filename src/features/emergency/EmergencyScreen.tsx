@@ -21,8 +21,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Icon } from '@/core/components';
 import type { Contact, HotlineCategory } from '@/core/models';
-import { BrandColors, BorderRadius, Fonts, Spacing } from '@/core/theme';
 import { navigateTo, Routes } from '@/core/routing';
+import { BorderRadius, BrandColors, Fonts, Spacing } from '@/core/theme';
 import { BottomNav, type TabId } from '@/features/dashboard/components/BottomNav';
 
 import { emergencyHotlineData } from './data';
@@ -32,6 +32,11 @@ const INK = '#16161D';
 const MUTED = '#73706B';
 const SURFACE = '#FFFFFF';
 const SOFT = '#F7F7F8';
+
+interface ContactGroupItem {
+  name: string;
+  contacts: Contact[];
+}
 
 function dial(number: string) {
   const dialable = number.replace(/[^\d+]/g, '');
@@ -53,6 +58,22 @@ function categoryColor(categoryId: string) {
   if (categoryId === 'medical') return '#38BFC5';
   if (categoryId === 'fire') return ALERT;
   return BrandColors.progress;
+}
+
+function groupContactsByName(contacts: Contact[]): ContactGroupItem[] {
+  const groups = new Map<string, ContactGroupItem>();
+
+  for (const contact of contacts) {
+    const key = contact.name.trim().toLowerCase();
+    const group = groups.get(key);
+    if (group) {
+      group.contacts.push(contact);
+    } else {
+      groups.set(key, { name: contact.name, contacts: [contact] });
+    }
+  }
+
+  return Array.from(groups.values());
 }
 
 export default function EmergencyScreen() {
@@ -176,7 +197,7 @@ function EmergencySlider({ contact }: { contact: Contact }) {
       <View style={styles.emergencyTitleRow}>
         <Icon name="emergency" size={30} color={ALERT} strokeWidth={2.2} />
         <Text style={styles.emergencyTitle}>
-          For Emergencies, Call {contact.number} {contact.label ? `(${contact.label})` : ''}
+          For Emergencies, Call {contact.number}
         </Text>
       </View>
 
@@ -248,6 +269,10 @@ function CategorySheet({
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const contactGroups = React.useMemo(
+    () => groupContactsByName(category?.contacts ?? []),
+    [category?.contacts],
+  );
 
   return (
     <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
@@ -267,8 +292,8 @@ function CategorySheet({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
-            {category?.contacts.map((contact) => (
-              <ContactGroup key={`${contact.name}-${contact.label ?? ''}-${contact.number}`} contact={contact} />
+            {contactGroups.map((group) => (
+              <ContactGroup key={group.name} group={group} />
             ))}
           </ScrollView>
         </View>
@@ -277,12 +302,13 @@ function CategorySheet({
   );
 }
 
-function ContactGroup({ contact }: { contact: Contact }) {
+function ContactGroup({ group }: { group: ContactGroupItem }) {
   return (
     <View style={styles.contactGroup}>
-      <Text style={styles.contactName}>{contact.name}</Text>
-      {contact.label ? <Text style={styles.contactMeta}>{contact.label}</Text> : null}
-      <NumberRow contact={contact} />
+      <Text style={styles.contactName}>{group.name}</Text>
+      {group.contacts.map((contact) => (
+        <NumberRow key={`${contact.label ?? 'phone'}-${contact.number}`} contact={contact} showLabel />
+      ))}
     </View>
   );
 }

@@ -37,7 +37,7 @@ function Dot({ delay, color }: { delay: number; color: string }) {
   );
 }
 
-export function TypingIndicator({ color = '#FFE7B8' }: { color?: string }) {
+export function TypingIndicator({ color = '#2A2A2A' }: { color?: string }) {
   return (
     <View style={styles.row}>
       <Dot delay={0} color={color} />
@@ -59,6 +59,6 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#FFE7B8',
+    backgroundColor: '#2A2A2A',
   },
 });
