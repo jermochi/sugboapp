@@ -7,6 +7,7 @@
  */
 import React from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
   Pressable,
@@ -120,6 +121,7 @@ export default function PermitScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <StatusBar style="dark" />
       <SafeAreaView style={styles.safe}>
         <ScrollView
           showsVerticalScrollIndicator={false}

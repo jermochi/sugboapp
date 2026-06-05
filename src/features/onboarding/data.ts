@@ -1,25 +1,15 @@
 /**
  * Static content for the first-launch walkthrough.
  *
- * Five branded slides covering the services that actually ship today — Giya
- * (the AI front door), Business Permits, the Transparency/Budget Tracker, and
- * Emergency hotlines — bookended by a welcome. Copy keeps the app's warm
- * Bisaya/English voice (mirrors `dashboard/data.ts`). Each slide names a
- * `visual` kind that {@link SlideVisual} knows how to paint with the existing
- * brand assets (Giya mascot, Sinulog star motif, Icon set).
+ * Five branded slides covering the services that ship today — Giya (the AI front
+ * door), Business Permits, the Transparency/Budget Tracker, and Emergency
+ * hotlines — bookended by a welcome. Copy keeps the app's warm Bisaya/English
+ * voice (mirrors `dashboard/data.ts`). Each slide pairs its text with a
+ * screenshot of the real destination screen, shown inside the phone mockup
+ * ({@link PhoneMockup}) per the onboarding layout.
  */
 
-import type { IconName } from '@/core/components';
-
-/** Which illustration {@link SlideVisual} renders for a slide. */
-export type SlideVisualKind = 'mascot' | 'giya' | 'service' | 'emergency';
-
-/**
- * The body layout of the destination screen drawn inside the phone mockup for
- * `service` / `emergency` slides — a roadmap step list, a budget bar chart, or
- * an emergency hotline card.
- */
-export type SlideFlowKind = 'steps' | 'bars' | 'hotline';
+import type { ImageSourcePropType } from 'react-native';
 
 export interface OnboardingSlide {
   id: string;
@@ -30,12 +20,9 @@ export interface OnboardingSlide {
   /** Substring of `title` to highlight in the accent color. */
   emphasis?: string;
   body: string;
-  visual: SlideVisualKind;
-  /** Icon shown for `service` / `emergency` visuals (and the home tile to tap). */
-  icon?: IconName;
-  /** Destination-screen body drawn in the phone mockup (service/emergency). */
-  flow?: SlideFlowKind;
-  /** Accent color for the emphasis word + visual glow. */
+  /** Screenshot of the destination screen, drawn inside the phone mockup. */
+  image: ImageSourcePropType;
+  /** Accent color for the emphasis word. */
   accent: string;
 }
 
@@ -45,7 +32,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     title: 'Cebu City at your fingertips',
     emphasis: 'fingertips',
     body: 'One app for every city service, hotline, and update — no more bouncing between offices and Facebook pages.',
-    visual: 'mascot',
+    image: require('../../../assets/images/home-screen.jpeg'),
     accent: '#990000',
   },
   {
@@ -54,7 +41,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     title: 'Just ask — even in Bisaya',
     emphasis: 'Bisaya',
     body: 'Tell Giya what you need by voice or text, and it takes you straight to the right service.',
-    visual: 'giya',
+    image: require('../../../assets/images/giya-chat.jpeg'),
     accent: '#990000',
   },
   {
@@ -63,9 +50,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     title: 'Permits, step by step',
     emphasis: 'step by step',
     body: 'See every requirement laid out, follow the roadmap, and keep track of your renewal.',
-    visual: 'service',
-    icon: 'permit',
-    flow: 'steps',
+    image: require('../../../assets/images/giya-screen.jpeg'),
     accent: '#6B2E1E',
   },
   {
@@ -74,9 +59,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     title: 'See where the budget goes',
     emphasis: 'budget',
     body: "Explore Cebu City's spending — by sector and barangay — with clear, simple charts.",
-    visual: 'service',
-    icon: 'budget',
-    flow: 'bars',
+    image: require('../../../assets/images/budget-screen.jpeg'),
     accent: '#DAA520',
   },
   {
@@ -85,9 +68,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     title: 'Help when it matters',
     emphasis: 'matters',
     body: 'Reach city hotlines in one tap when every second counts. Tabang, dali ra.',
-    visual: 'emergency',
-    icon: 'emergency',
-    flow: 'hotline',
+    image: require('../../../assets/images/emergency-screen.jpeg'),
     accent: '#C0392B',
   },
 ];

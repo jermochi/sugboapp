@@ -1,9 +1,10 @@
 /**
  * OnboardingSlide — one full-width page in the walkthrough pager.
  *
- * Lays out the {@link SlideVisual} hero over a text block (eyebrow, title with
- * an accent-tinted emphasis word, body). The shared warm-gold wash and Sinulog
- * texture are painted once by the parent screen behind every page.
+ * Follows the onboarding layout: a left-aligned text block (eyebrow, title with
+ * an accent-tinted emphasis word, body) up top, then a {@link PhoneMockup}
+ * previewing the destination screen that fills the rest and bleeds off the
+ * bottom. The shared warm-gold wash is painted once by the parent screen.
  */
 
 import { BrandColors, Fonts } from '@/core/theme';
@@ -11,7 +12,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { OnboardingSlide as Slide } from '../data';
-import { SlideVisual } from './SlideVisual';
+import { PhoneMockup } from './PhoneMockup';
 
 interface OnboardingSlideProps {
   slide: Slide;
@@ -34,21 +35,20 @@ function renderTitle(title: string, emphasis: string | undefined, accent: string
 }
 
 export function OnboardingSlide({ slide, width }: OnboardingSlideProps) {
+  // Device width: a generous fraction of the page so the phone reads large and
+  // bleeds, clamped to leave a little side margin on narrow screens.
+  const deviceWidth = Math.min(Math.round(width * 0.72), width - 48);
+
   return (
     <View style={[styles.page, { width }]}>
-      <View style={styles.visualArea}>
-        <SlideVisual
-          kind={slide.visual}
-          icon={slide.icon}
-          flow={slide.flow}
-          accent={slide.accent}
-        />
-      </View>
-
       <View style={styles.textArea}>
         {slide.eyebrow ? <Text style={styles.eyebrow}>{slide.eyebrow}</Text> : null}
         {renderTitle(slide.title, slide.emphasis, slide.accent)}
         <Text style={styles.body}>{slide.body}</Text>
+      </View>
+
+      <View style={styles.phoneArea}>
+        <PhoneMockup image={slide.image} width={deviceWidth} />
       </View>
     </View>
   );
@@ -60,18 +60,11 @@ const styles = StyleSheet.create({
     // time. Avoid `flex: 1` here — on react-native-web it sets flexBasis:0 and
     // collapses the page to its content width, stacking every slide together.
     height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 28,
-  },
-  visualArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 8,
   },
   textArea: {
-    alignItems: 'center',
-    paddingBottom: 12,
+    alignItems: 'flex-start',
   },
   eyebrow: {
     fontFamily: Fonts.bodySemiBold,
@@ -79,23 +72,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     color: BrandColors.gold,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   title: {
     fontFamily: Fonts.headingBlack,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 30,
+    lineHeight: 37,
     letterSpacing: -0.5,
     color: BrandColors.garnet,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   body: {
     fontFamily: Fonts.body,
     fontSize: 15,
     lineHeight: 22,
     color: BrandColors.charcoal,
-    textAlign: 'center',
+    textAlign: 'left',
     marginTop: 12,
-    maxWidth: 320,
+    opacity: 0.78,
+  },
+  phoneArea: {
+    flex: 1,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: 30,
   },
 });

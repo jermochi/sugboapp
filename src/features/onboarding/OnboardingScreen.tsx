@@ -3,9 +3,10 @@
  *
  * A horizontally paged tour of the services that ship today (Giya, Permits,
  * Budget, Emergency), styled to match the "Meet Giya" dashboard: a warm-gold
- * wash with Sinulog texture, brand mascot art, and the crimson→gold CTA. Skip
- * or finishing both persist the seen-flag (so it never auto-shows again) and
- * replace into the Dashboard.
+ * wash with a left-aligned text block and a phone mockup previewing each
+ * destination screen, bleeding off the bottom under a floating crimson→gold
+ * CTA. Skip or finishing both persist the seen-flag (so it never auto-shows
+ * again) and replace into the Dashboard.
  *
  * Reachable two ways: auto-gated on a fresh install by `app/index`, and
  * manually via the `/onboarding` route for a replay.
@@ -17,22 +18,18 @@ import React, { useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
   View,
 } from 'react-native';
-import Animated, {
-  useAnimatedScrollHandler,
-  useSharedValue,
-} from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { replaceTo, Routes } from '@/core/routing';
 import { BrandColors, Fonts } from '@/core/theme';
 
 import { OnboardingSlide } from './components/OnboardingSlide';
-import { PageDots } from './components/PageDots';
 import { ONBOARDING_SLIDES } from './data';
 import { setOnboardingSeen } from './storage';
 
@@ -52,15 +49,11 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   // (authoritative, follows resize/rotation) and fall back to the window width
   // for the very first frame before onLayout fires.
   const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [layoutWidth, setLayoutWidth] = useState(0);
   const width = layoutWidth || window.width || 390;
-  const scrollRef = useRef<Animated.ScrollView>(null);
-  const scrollX = useSharedValue(0);
+  const scrollRef = useRef<ScrollView>(null);
   const [index, setIndex] = useState(0);
-
-  const scrollHandler = useAnimatedScrollHandler((e) => {
-    scrollX.value = e.contentOffset.x;
-  });
 
   const handleLayout = (e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
@@ -103,7 +96,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
         style={StyleSheet.absoluteFill}
       />
 
-      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
         {/* Skip — top-right, hidden on the final slide. */}
         <View style={styles.topBar}>
           {!isLast ? (
@@ -120,43 +113,46 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           )}
         </View>
 
-        <Animated.ScrollView
+        <ScrollView
           ref={scrollRef}
           style={styles.pager}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           bounces={false}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
           onMomentumScrollEnd={(e) => handleMomentumEnd(e.nativeEvent.contentOffset.x)}
         >
           {ONBOARDING_SLIDES.map((slide) => (
             <OnboardingSlide key={slide.id} slide={slide} width={width} />
           ))}
-        </Animated.ScrollView>
-
-        <View style={styles.footer}>
-          <PageDots count={ONBOARDING_SLIDES.length} scrollX={scrollX} width={width || 1} />
-
-          <Pressable
-            onPress={handleNext}
-            accessibilityRole="button"
-            accessibilityLabel={isLast ? 'Get started' : 'Continue'}
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-          >
-            <LinearGradient
-              colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
-              locations={[0, 0.52, 1]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.ctaGradient}
-            >
-              <Text style={styles.ctaLabel}>{isLast ? 'Get Started' : 'Continue'}</Text>
-            </LinearGradient>
-          </Pressable>
-        </View>
+        </ScrollView>
       </SafeAreaView>
+
+      {/* Floating CTA over the bleeding phone, with a scrim so it stays legible. */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]} pointerEvents="box-none">
+        <LinearGradient
+          colors={['rgba(251,248,243,0)', 'rgba(251,248,243,0.92)', '#FBF8F3']}
+          locations={[0, 0.55, 1]}
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+        />
+        <Pressable
+          onPress={handleNext}
+          accessibilityRole="button"
+          accessibilityLabel={isLast ? 'Get started' : 'Continue'}
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+        >
+          <LinearGradient
+            colors={[BrandColors.crimsonBright, BrandColors.crimson, BrandColors.crimsonDeep]}
+            locations={[0, 0.52, 1]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.ctaGradient}
+          >
+            <Text style={styles.ctaLabel}>{isLast ? 'Get Started' : 'Continue'}</Text>
+          </LinearGradient>
+        </Pressable>
+      </View>
 
       <StatusBar style="dark" />
     </View>
@@ -187,10 +183,12 @@ const styles = StyleSheet.create({
     color: BrandColors.muted,
   },
   footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 8,
-    gap: 20,
+    paddingTop: 40,
   },
   cta: {
     height: 54,

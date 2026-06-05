@@ -80,7 +80,6 @@ export default function RootLayout() {
                 headerShown: false,
                 contentStyle: { backgroundColor: '#FFFFFF' },
                 statusBarBackgroundColor: '#FFFFFF',
-                statusBarStyle: 'dark',
               }}
             />
             <Stack.Screen
@@ -89,7 +88,6 @@ export default function RootLayout() {
                 headerShown: false,
                 contentStyle: { backgroundColor: '#FFFFFF' },
                 statusBarBackgroundColor: '#FFFFFF',
-                statusBarStyle: 'dark',
               }}
             />
             <Stack.Screen
@@ -98,7 +96,6 @@ export default function RootLayout() {
                 headerShown: false,
                 contentStyle: { backgroundColor: '#FFFFFF' },
                 statusBarBackgroundColor: '#FFFFFF',
-                statusBarStyle: 'dark',
               }}
             />
           </Stack>
