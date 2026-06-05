@@ -140,6 +140,52 @@ const FALLBACK = {
 /** Offline clarify chips — labels chosen so matchIntent resolves them when tapped. */
 const FALLBACK_OPTIONS = ['Business permit', 'City budget', 'Emergency hotlines'];
 
+function wantsHotlineData(text: string): boolean {
+  return /\b(911|hotline|hotlines|emergency|cdrmmo|cdrrmo|fire|sunog|hospital|medical|ambulance|ambulansya|sotto|chong hua|cebu doctors|cebu city medical)\b/i.test(
+    text,
+  );
+}
+
+function hotlineQueryFor(text: string): string {
+  const lower = text.toLowerCase();
+  if (lower.includes('911')) return '911';
+  if (lower.includes('cdrmmo') || lower.includes('cdrrmo')) return 'cdrmmo';
+  if (lower.includes('fire') || lower.includes('sunog')) return 'fire';
+  if (lower.includes('sotto')) return 'sotto';
+  if (lower.includes('chong hua')) return 'chong hua';
+  if (lower.includes('cebu doctors')) return 'cebu doctors';
+  if (lower.includes('cebu city medical')) return 'cebu city medical';
+  if (
+    lower.includes('hospital') ||
+    lower.includes('medical') ||
+    lower.includes('ambulance') ||
+    lower.includes('ambulansya')
+  ) {
+    return 'hospital';
+  }
+  if (lower.includes('hotline') || lower.includes('emergency')) return '';
+  return text;
+}
+
+function formatHotlineMatches(result: Record<string, unknown>): string {
+  const matches = Array.isArray(result.matches) ? result.matches : [];
+  if (matches.length === 0) {
+    return 'Wala koy nakit-an nga hotline sa offline list. I-tap ang Emergency Services link para tan-awon ang saved directory. · I could not find that hotline in the offline list. Tap Emergency Services to view the saved directory.';
+  }
+
+  const lines = matches.slice(0, 6).map((item) => {
+    const match = item as {
+      name?: unknown;
+      number?: unknown;
+      label?: unknown;
+    };
+    const label = match.label ? ` (${String(match.label)})` : '';
+    return `- ${String(match.name)}${label}: ${String(match.number)}`;
+  });
+
+  return `Here are the saved emergency hotlines:\n${lines.join('\n')}`;
+}
+
 let idCounter = 0;
 function nextId(): string {
   idCounter += 1;
@@ -271,6 +317,26 @@ export const useGiyaChatStore = create<GiyaChatState>((set, get) => {
     if (voice && !userText) {
       resolveAssistant(pendingId, FALLBACK.voiceOffline);
       return;
+    }
+    if (
+      userText &&
+      wantsHotlineData(userText) &&
+      aiFunctionRegistry.has('query_hotlines')
+    ) {
+      try {
+        const result = await aiFunctionRegistry.dispatch('query_hotlines', {
+          query: hotlineQueryFor(userText),
+          limit: 6,
+        });
+        resolveAssistant(pendingId, formatHotlineMatches(result));
+        const action = actionFromResponses([
+          { name: 'query_hotlines', response: result },
+        ]);
+        if (action) appendAction(action);
+        return;
+      } catch {
+        // Fall through to service routing if hotline lookup is unavailable.
+      }
     }
     const serviceId = userText ? matchIntent(userText) : null;
     if (!serviceId) {
